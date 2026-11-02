@@ -1,0 +1,34 @@
+{
+  "name": "openaac-avatar",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Posable, recolourable SVG person generator for AAC picture symbols.",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "art:compile": "pnpm --filter @openaac-avatar/artkit compile",
+    "art:validate": "pnpm --filter @openaac-avatar/artkit validate",
+    "dev": "pnpm --filter @openaac-avatar/editor dev",
+    "serve": "pnpm --filter @openaac-avatar/server start",
+    "render": "node packages/cli/bin/openaac-avatar.js",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "preview": "tsx --conditions=source scripts/preview.ts",
+    "build:web": "pnpm --filter @openaac-avatar/editor build",
+    "art:stand-ins": "tsx --conditions=source scripts/place-stand-ins.ts",
+    "art:import": "tsx --conditions=source scripts/import-art.ts"
+  },
+  "devDependencies": {
+    "@openaac-avatar/artkit": "workspace:*",
+    "@openaac-avatar/core": "workspace:*",
+    "@types/node": "^24.0.0",
+    "@xmldom/xmldom": "^0.8.15",
+    "tsx": "^4.20.0",
+    "typescript": "^6.0.2",
+    "vitest": "^3.2.0"
+  }
+}

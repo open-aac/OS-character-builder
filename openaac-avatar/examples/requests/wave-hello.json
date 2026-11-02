@@ -1,0 +1,5 @@
+{
+  "pose": { "preset": "waving" },
+  "avatar": { "body": 0.3, "colors": { "skin": "#8d5524", "hair": "#1b1b1b", "top": "#e53935", "bottom": "#1565c0" } },
+  "options": { "framing": "full", "size": 300, "title": "hello" }
+}

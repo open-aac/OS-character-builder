@@ -1,0 +1,41 @@
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const bin = resolve(import.meta.dirname, '../bin/openaac-avatar.js');
+const examples = resolve(import.meta.dirname, '../../../examples/requests');
+const run = (...args: string[]) => spawnSync(process.execPath, [bin, ...args], { encoding: 'utf8' });
+
+describe('CLI', () => {
+  it('renders one symbol to stdout', () => {
+    const r = run('render', '--preset', 'waving', '--skin', '#8d5524', '--size', '100');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/^<svg /);
+    expect(r.stdout).toContain('fill="#8d5524"');
+  });
+
+  it('reports every input problem and exits non-zero', () => {
+    const r = run('render', '--preset', 'flying', '--body', '3');
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('pose.preset');
+    expect(r.stderr).toContain('avatar.body');
+  });
+
+  it('bulk-regenerates a folder, and again from its own output with new settings', () => {
+    const out1 = mkdtempSync(join(tmpdir(), 'oa-'));
+    const r1 = run('batch', examples, '--out-dir', out1);
+    expect(r1.status).toBe(0);
+    const files = readdirSync(out1);
+    expect(files.length).toBe(readdirSync(examples).filter((f) => f.endsWith('.json')).length);
+
+    // Re-render the generated SVGs (their settings are embedded) with a different line weight.
+    const out2 = mkdtempSync(join(tmpdir(), 'oa-'));
+    const r2 = run('batch', out1, '--out-dir', out2, '--avatar', join(examples, '../avatar-thick-lines.json'));
+    expect(r2.status).toBe(0);
+    const again = readFileSync(join(out2, 'wave-hello.svg'), 'utf8');
+    expect(again).toContain('fill="#e53935"'); // colour carried over from the original
+    expect(again).toContain('stroke-width="20"'); // new setting applied
+  });
+});

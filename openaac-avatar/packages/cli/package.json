@@ -1,0 +1,21 @@
+{
+  "name": "@openaac-avatar/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Command line renderer: one symbol, or bulk-regenerate a folder of saved requests.",
+  "bin": {
+    "openaac-avatar": "./bin/openaac-avatar.js"
+  },
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@openaac-avatar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}

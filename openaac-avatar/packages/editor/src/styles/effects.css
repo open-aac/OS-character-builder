@@ -1,0 +1,108 @@
+/* Motion: a short entrance, a breathing figure, gently floating doodles. (Pose changes are animated in render/preview.ts.) */
+@keyframes rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0.4;
+  }
+}
+/* Breathing is a slight widening (horizontal, per the art direction), at half the earlier strength. */
+@keyframes breathe {
+  50% {
+    transform: scaleX(1.004);
+  }
+}
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(-2%) scale(0.86);
+  }
+  50% {
+    transform: translateY(-7%) scale(0.86);
+  }
+}
+@keyframes shadow-hop {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(0.75);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateX(-50%) scale(0.55);
+    opacity: 0.5;
+  }
+}
+@keyframes float {
+  50% {
+    transform: translateY(-6px) rotate(6deg);
+  }
+}
+@keyframes twinkle {
+  50% {
+    transform: scale(0.86) rotate(14deg);
+  }
+}
+@keyframes dialog-in {
+  from {
+    transform: translateY(12px) scale(0.98);
+    opacity: 0;
+  }
+}
+
+.top,
+.stage-card,
+.panel {
+  animation: rise 0.55s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.stage-card {
+  animation-delay: 0.05s;
+}
+.panel:nth-child(1) {
+  animation-delay: 0.08s;
+}
+.panel:nth-child(2) {
+  animation-delay: 0.14s;
+}
+.panel:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.panel:nth-child(n + 4) {
+  animation-delay: 0.26s;
+}
+
+/* The figure breathes gently; its feet stay on the ground. */
+.preview {
+  transform-origin: 50% 92%;
+  animation: breathe 3.6s ease-in-out infinite;
+}
+/* Jumping: the figure hops above a shrinking shadow. */
+.preview-wrap[data-airborne='true'] .preview {
+  transform-origin: 50% 100%;
+  animation: hop 1.1s ease-in-out infinite;
+}
+.preview-wrap[data-airborne='true'] .ground {
+  animation: shadow-hop 1.1s ease-in-out infinite;
+}
+.doodle-star {
+  animation: twinkle 4s ease-in-out infinite;
+}
+.doodle-dash-l {
+  animation: float 5s ease-in-out infinite;
+}
+.doodle-dash-r {
+  animation: float 6s ease-in-out infinite reverse;
+}
+.brand-mark {
+  transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.brand-mark:hover {
+  transform: rotate(6deg) scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

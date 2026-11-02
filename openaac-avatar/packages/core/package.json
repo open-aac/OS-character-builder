@@ -1,0 +1,29 @@
+{
+  "name": "@openaac-avatar/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared render core: art kit, body morph, posing, colours and SVG output. No DOM or Node dependencies, so it runs in the browser and in Node.",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "clipper-lib": "6.4.2"
+  },
+  "devDependencies": {
+    "@types/clipper-lib": "6.4.0"
+  }
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="140" viewBox="-20 -70 160 140">
+  <!-- Right hand pointing: a closed fist with the index finger stretched out along +x, seen from the thumb side. Wrist at 0,0; thumb towards -y. The outline starts and ends inside the forearm. -->
+  <path id="palm" d="M -12,-9 C -8,-13 -4,-18 0,-18
+    C 14,-20 30,-20 44,-18
+    C 62,-17 82,-16 96,-14
+    C 106,-12 106,0 96,-1
+    C 82,-1 68,-1 58,0
+    C 66,5 67,15 60,21
+    C 52,27 36,27 22,25
+    C 10,24 4,22 0,21 C -4,21 -8,17 -12,13" fill="#d59965" stroke="#000000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="thumb" d="M 8,-16 C 16,-28 34,-30 44,-25 C 52,-21 50,-14 42,-12 C 32,-10 22,-9 14,-6" fill="#d59965" stroke="#000000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,5 @@
+{
+  "pose": { "preset": "reaching", "adjust": { "shoulder_R": 15, "neck": -10 } },
+  "avatar": { "body": 0.7, "colors": { "skin": "#f1c27d", "hair": "#a0522d", "top": "#43a047" } },
+  "options": { "size": 300, "title": "reach" }
+}

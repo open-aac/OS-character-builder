@@ -1,0 +1,27 @@
+{
+  "name": "@openaac-avatar/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP endpoint: POST pose and avatar settings, get an SVG back.",
+  "exports": {
+    ".": {
+      "source": "./src/app.ts",
+      "types": "./src/app.ts",
+      "default": "./dist/app.js"
+    }
+  },
+  "scripts": {
+    "start": "tsx --conditions=source src/main.ts",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "start:prod": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@openaac-avatar/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}

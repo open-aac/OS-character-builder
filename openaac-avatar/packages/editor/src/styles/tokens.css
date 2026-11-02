@@ -1,0 +1,47 @@
+/*
+ * Design tokens. The editor commits to one bright, playful light look
+ * (it sits on a sky-and-sunshine background), so there is no dark theme;
+ * every colour is set explicitly here.
+ *
+ * Layout: header with brand and actions; sticky preview card on the left;
+ * a column of white settings cards on the right.
+ */
+:root {
+  color-scheme: light;
+
+  --ink: #1a1f36;
+  --ink-soft: #5b6480;
+  --ink-faint: #8a93ad;
+  --card: rgb(255 255 255 / 0.9);
+  --card-solid: #ffffff;
+  --line: #e3e8f4;
+  --track: #e4e9f5;
+
+  --blue: #3d7bfd;
+  --violet: #7a5cfa;
+  --sun: #ffc93c;
+  --coral: #ff6b6b;
+  --grad: linear-gradient(120deg, #3d7bfd 0%, #6a5cff 100%);
+
+  --pink-bg: #fdebf2;
+  --pink: #e2457b;
+  --blue-bg: #e7f0ff;
+  --green-bg: #e3f7ec;
+  --green: #1fa463;
+  --orange-bg: #fff0e1;
+  --orange: #ee8a1f;
+  --purple-bg: #efeaff;
+  --purple: #7a5cfa;
+
+  --check-a: #ffffff;
+  --check-b: #eef2fa;
+
+  --font: 'Nunito Variable', 'Nunito', ui-rounded, 'Segoe UI Rounded', 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-card: 26px;
+  --radius: 16px;
+  --shadow-card: 0 18px 40px -18px rgb(40 80 160 / 0.35), 0 2px 6px rgb(40 80 160 / 0.06);
+  --shadow-btn: 0 10px 22px -10px rgb(61 123 253 / 0.65);
+  --shadow-soft: 0 8px 18px -10px rgb(30 50 110 / 0.35);
+}

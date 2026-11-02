@@ -1,0 +1,5 @@
+{
+  "pose": { "preset": "sitting-utensil" },
+  "avatar": { "body": 0.5, "colors": { "skin": "#c68642", "top": "#fbc02d", "bottom": "#5d4037" } },
+  "options": { "framing": "upper", "size": 300, "title": "eat" }
+}

@@ -1,0 +1,5 @@
+{
+  "pose": { "preset": "holding" },
+  "avatar": { "body": 1, "colors": { "skin": "#e0ac69", "hair": "#2b190d", "top": "#7b1fa2" }, "lineWeight": 1.4 },
+  "options": { "framing": "upper", "size": 300, "background": "#fffde7", "title": "hold" }
+}
