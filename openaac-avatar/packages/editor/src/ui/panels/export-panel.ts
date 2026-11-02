@@ -14,7 +14,9 @@ export function exportPanel(store: Store, actions: ExportActions): HTMLElement {
 
   const sizeInput = h('input', { type: 'number', id: 'export-size-input', min: '16', max: '4096', step: '1', value: String(size) });
   sizeInput.addEventListener('change', () => {
-    const v = Math.min(4096, Math.max(16, Math.round(Number(sizeInput.value) || 500)));
+    // `|| 500` would also catch a genuine 0 (falsy): clamp that into range instead of silently defaulting.
+    const n = Number(sizeInput.value);
+    const v = Math.min(4096, Math.max(16, Math.round(Number.isNaN(n) ? 500 : n)));
     sizeInput.value = String(v);
     store.update({ size: v });
   });
