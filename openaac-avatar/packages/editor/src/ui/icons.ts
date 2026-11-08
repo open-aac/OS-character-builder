@@ -14,6 +14,9 @@ export const ICONS = {
   arm: svg('<path d="M6 4c0 6 2 10 7 11l4 1"/><path d="M17 13l3 3-3 3"/>'),
   clothing: svg('<path d="M8 3 3 6l2 5 3-1v11h8V10l3 1 2-5-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3Z"/>'),
   leg: svg('<path d="M9 3v9l-1 8h5"/><path d="M14 3v9l1 4"/>'),
+  chevron: svg('<path d="M6 9l6 6 6-6"/>'),
+  back: svg('<path d="M19 12H5M11 18l-6-6 6-6"/>'),
+  edit: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>'),
 };
 
 export type IconName = keyof typeof ICONS;

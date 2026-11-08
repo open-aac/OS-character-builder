@@ -3,9 +3,9 @@ import { COLOR_LABELS } from '../../config/labels';
 import { SWATCHES } from '../../config/swatches';
 import { h } from '../../lib/dom';
 import type { Store } from '../../state/store';
-import { button, panel } from '../components';
+import { button } from '../components';
 
-export function coloursPanel(store: Store): HTMLElement {
+export function coloursFields(store: Store): Node[] {
   const setColour = (role: ColorRole, value: string) => store.update({ colors: { ...store.state.colors, [role]: value } });
   const list = h('div', { class: 'colors' });
 
@@ -33,10 +33,5 @@ export function coloursPanel(store: Store): HTMLElement {
     list.append(row);
   }
 
-  return panel(
-    'Colours',
-    'colours',
-    list,
-    h('div', { class: 'row end' }, button('Reset colours', () => store.update({ colors: { ...DEFAULT_COLORS } }, { rebuild: true }), 'ghost')),
-  );
+  return [list, h('div', { class: 'row end' }, button('Reset colours', () => store.update({ colors: { ...DEFAULT_COLORS } }, { rebuild: true }), 'ghost'))];
 }

@@ -124,4 +124,25 @@ describe('Store', () => {
     expect(a).toHaveBeenCalledTimes(1);
     expect(b).toHaveBeenCalledTimes(1);
   });
+
+  it('starts with no Pose-panel sub-view (the template gallery)', () => {
+    const store = new Store(initialState());
+    expect(store.poseView).toBeNull();
+  });
+
+  it('setPoseView() sets the sub-view and notifies rebuild listeners', () => {
+    const store = new Store(initialState());
+    const onRebuild = vi.fn();
+    store.on('rebuild', onRebuild);
+    store.setPoseView({ limb: 'Head' });
+    expect(store.poseView).toEqual({ limb: 'Head' });
+    expect(onRebuild).toHaveBeenCalledTimes(1);
+  });
+
+  it('replace() resets the Pose-panel sub-view back to the gallery', () => {
+    const store = new Store(initialState());
+    store.setPoseView({ limb: 'Head' });
+    store.replace(initialState());
+    expect(store.poseView).toBeNull();
+  });
 });

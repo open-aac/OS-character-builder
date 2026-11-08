@@ -76,9 +76,20 @@ export function fromRequest(r: RenderRequest): EditorState {
 /** `change` fires on every edit (redraw the preview); `rebuild` when the controls themselves must be redrawn. */
 type Event = 'change' | 'rebuild';
 
+/** Which sub-view the Pose panel shows: a limb picked to fine-tune, after choosing a template. */
+export interface PoseView {
+  limb: string;
+}
+
 export class Store {
   #state: EditorState;
   #listeners: Record<Event, Set<() => void>> = { change: new Set(), rebuild: new Set() };
+  /**
+   * The Pose panel's current sub-view (template gallery when `null`, otherwise a limb's preset
+   * view). This is UI-only navigation state, not part of a render request, so it lives here
+   * rather than in `EditorState` (which maps 1:1 onto `RenderRequest` and is round-tripped/saved).
+   */
+  poseView: PoseView | null = null;
 
   constructor(state: EditorState) {
     this.#state = state;
@@ -97,7 +108,14 @@ export class Store {
 
   replace(state: EditorState): void {
     this.#state = state;
+    this.poseView = null;
     this.#emit('change');
+    this.#emit('rebuild');
+  }
+
+  /** Enter or leave the Pose panel's limb-preset view, and rebuild the controls to show it. */
+  setPoseView(view: PoseView | null): void {
+    this.poseView = view;
     this.#emit('rebuild');
   }
 

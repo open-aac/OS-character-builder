@@ -1,22 +1,32 @@
-import { describe, expect, it, vi } from 'vitest';
-import { adjustPanel } from '../src/ui/panels/adjust-panel';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { JOINT_GROUPS } from '../src/config/labels';
+import { h } from '../src/lib/dom';
+import { adjustFields } from '../src/ui/panels/adjust-panel';
 import { bodyPanel } from '../src/ui/panels/body-panel';
-import { clothingPanel } from '../src/ui/panels/clothing-panel';
-import { coloursPanel } from '../src/ui/panels/colours-panel';
+import { clothingFields } from '../src/ui/panels/clothing-panel';
+import { coloursFields } from '../src/ui/panels/colours-panel';
 import { exportPanel } from '../src/ui/panels/export-panel';
-import { linesPanel } from '../src/ui/panels/lines-panel';
+import { linesFields } from '../src/ui/panels/lines-panel';
+import { lookPanel } from '../src/ui/panels/look-panel';
 import { posePanel } from '../src/ui/panels/pose-panel';
 import { Store, initialState } from '../src/state/store';
 
+afterEach(() => {
+  localStorage.clear();
+});
+
 const chipsIn = (root: HTMLElement, label: string) => root.querySelector<HTMLElement>(`[role="radiogroup"][aria-label="${label}"]`)!;
 const chipFor = (group: HTMLElement, value: string) => [...group.querySelectorAll<HTMLButtonElement>('.chip')].find((c) => c.querySelector('.chip-label')?.textContent === value)!;
+/** The field-building panels no longer wrap themselves in `panel()`: put their Nodes in a container to query them. */
+const fieldContainer = (...nodes: Node[]) => h('div', {}, ...nodes);
 
 describe('posePanel', () => {
-  it('shows the current view and preset as selected', () => {
+  it('shows the gallery view by default, with current view and preset selected', () => {
     const store = new Store(initialState());
     const el = posePanel(store);
     expect(chipsIn(el, 'View').querySelector('.chip.on .chip-label')?.textContent).toBe('Front');
     expect(chipsIn(el, 'Template pose').querySelector('.chip.on')).toBeTruthy();
+    expect(el.querySelector('.pose-back')).toBeNull();
   });
 
   it('switching view resets adjustments, keeps the preset if offered, and rebuilds', () => {
@@ -38,7 +48,7 @@ describe('posePanel', () => {
     expect(store.state.preset === 'cheering' || store.state.preset === 'standing').toBe(true);
   });
 
-  it('picking a template changes the preset, clears adjustments, and rebuilds', () => {
+  it('picking a template changes the preset and clears adjustments, but stays in the gallery', () => {
     const store = new Store({ ...initialState(), adjust: { elbow_R: 10 } });
     const onRebuild = vi.fn();
     store.on('rebuild', onRebuild);
@@ -46,7 +56,76 @@ describe('posePanel', () => {
     chipFor(chipsIn(el, 'Template pose'), 'Waving').click();
     expect(store.state.preset).toBe('waving');
     expect(store.state.adjust).toEqual({});
+    expect(store.poseView).toBeNull();
     expect(onRebuild).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an "Edit pose" link only on the selected template', () => {
+    const store = new Store(initialState());
+    const el = posePanel(store);
+    const chips = [...chipsIn(el, 'Template pose').querySelectorAll('.chip')];
+    const selected = chips.find((c) => c.classList.contains('on'))!;
+    const others = chips.filter((c) => c !== selected);
+    expect(selected.querySelector('.pose-edit-link')).toBeTruthy();
+    for (const c of others) expect(c.querySelector('.pose-edit-link')).toBeNull();
+  });
+
+  it('clicking "Edit pose" enters the limb view without changing the preset', () => {
+    const store = new Store(initialState());
+    const el = posePanel(store);
+    chipsIn(el, 'Template pose').querySelector<HTMLButtonElement>('.pose-edit-link')!.click();
+    expect(store.state.preset).toBe('standing');
+    expect(store.poseView).not.toBeNull();
+  });
+
+  it('the limb view shows a Back button, a limb selector, preset chips and a collapsed Fine adjustments section', () => {
+    const store = new Store(initialState());
+    store.setPoseView({ limb: JOINT_GROUPS[0]!.title });
+    const el = posePanel(store);
+    expect(el.querySelector('.pose-back')).toBeTruthy();
+    expect(chipsIn(el, 'Limb')).toBeTruthy();
+    expect(chipsIn(el, 'Preset position')).toBeTruthy();
+    const fineAdjustments = [...el.querySelectorAll('.panel-title-text')].find((n) => n.textContent === 'Fine adjustments')!;
+    expect(fineAdjustments).toBeTruthy();
+    expect(fineAdjustments.closest('.subpanel')!.querySelector('.panel-header')!.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('clicking Back returns to the gallery view', () => {
+    const store = new Store(initialState());
+    store.setPoseView({ limb: JOINT_GROUPS[0]!.title });
+    const el = posePanel(store);
+    el.querySelector<HTMLButtonElement>('.pose-back')!.click();
+    expect(store.poseView).toBeNull();
+  });
+
+  it('picking a different limb switches the selection', () => {
+    const store = new Store(initialState());
+    store.setPoseView({ limb: JOINT_GROUPS[0]!.title });
+    const el = posePanel(store);
+    const otherGroup = JOINT_GROUPS[1]!.title;
+    chipFor(chipsIn(el, 'Limb'), otherGroup).click();
+    expect(store.poseView).toEqual({ limb: otherGroup });
+  });
+
+  it("picking a preset position applies all of that limb's joint angles at once and rebuilds", () => {
+    const store = new Store(initialState());
+    const armGroup = JOINT_GROUPS.find((g) => g.title.includes('Right arm'))!;
+    store.setPoseView({ limb: armGroup.title });
+    const onRebuild = vi.fn();
+    store.on('rebuild', onRebuild);
+    const el = posePanel(store);
+    chipFor(chipsIn(el, 'Preset position'), 'Raised').click();
+    for (const id of armGroup.joints) expect(store.state.adjust[id]).toBeGreaterThan(0);
+    expect(onRebuild).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a hint instead of presets when every joint in the limb is locked by the pose', () => {
+    const store = new Store({ ...initialState(), preset: 'sitting-utensil' });
+    const legGroup = JOINT_GROUPS.find((g) => g.title.includes('Right leg'))!;
+    store.setPoseView({ limb: legGroup.title });
+    const el = posePanel(store);
+    expect(chipsIn(el, 'Preset position')).toBeNull();
+    expect(el.textContent).toContain('Fixed in this pose');
   });
 });
 
@@ -69,20 +148,21 @@ describe('bodyPanel', () => {
   });
 });
 
-describe('linesPanel', () => {
+describe('linesFields', () => {
   it('dragging the slider updates line weight', () => {
     const store = new Store(initialState());
-    const input = linesPanel(store).querySelector('input')!;
+    const el = fieldContainer(...linesFields(store));
+    const input = el.querySelector('input')!;
     input.value = '0.8';
     input.dispatchEvent(new Event('input'));
     expect(store.state.lineWeight).toBe(0.8);
   });
 });
 
-describe('clothingPanel', () => {
+describe('clothingFields', () => {
   it('offers the front styles and marks the current choice', () => {
     const store = new Store(initialState());
-    const el = clothingPanel(store);
+    const el = fieldContainer(...clothingFields(store));
     const top = chipsIn(el, 'Top');
     expect(top.querySelector('.chip.on')).toBeTruthy();
   });
@@ -91,7 +171,7 @@ describe('clothingPanel', () => {
     const store = new Store(initialState());
     const onRebuild = vi.fn();
     store.on('rebuild', onRebuild);
-    const el = clothingPanel(store);
+    const el = fieldContainer(...clothingFields(store));
     const bottom = chipsIn(el, 'Bottom');
     const otherChip = [...bottom.querySelectorAll<HTMLButtonElement>('.chip')].find((c) => !c.classList.contains('on'))!;
     const label = otherChip.querySelector('.chip-label')!.textContent;
@@ -102,17 +182,17 @@ describe('clothingPanel', () => {
   });
 });
 
-describe('coloursPanel', () => {
+describe('coloursFields', () => {
   it('shows a colour input per role except ink', () => {
     const store = new Store(initialState());
-    const el = coloursPanel(store);
+    const el = fieldContainer(...coloursFields(store));
     expect(el.querySelector('#colour-ink')).toBeNull();
     expect(el.querySelector('#colour-skin')).toBeTruthy();
   });
 
   it('typing in the colour input updates that role', () => {
     const store = new Store(initialState());
-    const el = coloursPanel(store);
+    const el = fieldContainer(...coloursFields(store));
     const input = el.querySelector<HTMLInputElement>('#colour-skin')!;
     input.value = '#123456';
     input.dispatchEvent(new Event('input'));
@@ -121,7 +201,7 @@ describe('coloursPanel', () => {
 
   it('clicking a swatch sets the colour and the picker value', () => {
     const store = new Store(initialState());
-    const el = coloursPanel(store);
+    const el = fieldContainer(...coloursFields(store));
     const row = el.querySelector('#colour-hair')!.closest('.color-row')!;
     const swatch = row.querySelector<HTMLButtonElement>('.swatch')!;
     const expected = swatch.title;
@@ -134,24 +214,24 @@ describe('coloursPanel', () => {
     const store = new Store({ ...initialState(), colors: { ...initialState().colors, skin: '#000000' } });
     const onRebuild = vi.fn();
     store.on('rebuild', onRebuild);
-    const el = coloursPanel(store);
+    const el = fieldContainer(...coloursFields(store));
     [...el.querySelectorAll('button')].find((b) => b.textContent === 'Reset colours')!.click();
     expect(store.state.colors).toEqual(initialState().colors);
     expect(onRebuild).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('adjustPanel', () => {
+describe('adjustFields', () => {
   it('offers a slider for an unlocked joint, defaulting to its current adjustment', () => {
     const store = new Store({ ...initialState(), adjust: { shoulder_R: 5 } });
-    const el = adjustPanel(store);
+    const el = fieldContainer(...adjustFields(store));
     const sliders = [...el.querySelectorAll('input[type="range"]')] as HTMLInputElement[];
     expect(sliders.length).toBeGreaterThan(0);
   });
 
   it('moving a slider records the adjustment for that joint', () => {
     const store = new Store(initialState());
-    const el = adjustPanel(store);
+    const el = fieldContainer(...adjustFields(store));
     const neckRow = [...el.querySelectorAll('label.slider, label.slider.disabled')].find((l) => l.querySelector('.label')?.textContent === 'Tilt')!;
     const input = neckRow.querySelector('input')!;
     input.value = '10';
@@ -163,10 +243,26 @@ describe('adjustPanel', () => {
     const store = new Store({ ...initialState(), adjust: { neck: 10, shoulder_R: 5 } });
     const onRebuild = vi.fn();
     store.on('rebuild', onRebuild);
-    const el = adjustPanel(store);
+    const el = fieldContainer(...adjustFields(store));
     [...el.querySelectorAll('button')].find((b) => b.textContent === 'Reset adjustments')!.click();
     expect(store.state.adjust).toEqual({});
     expect(onRebuild).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('lookPanel', () => {
+  it('composes clothing, colours and line weight under one "Look" panel', () => {
+    const store = new Store(initialState());
+    const el = lookPanel(store);
+    expect(el.querySelector('.panel-title-text')?.textContent).toBe('Look');
+    expect(chipsIn(el, 'Top')).toBeTruthy();
+    expect(el.querySelector('#colour-skin')).toBeTruthy();
+    expect(el.querySelector('input[type="range"]')).toBeTruthy();
+  });
+
+  it('is collapsed by default, like every panel except Pose', () => {
+    const el = lookPanel(new Store(initialState()));
+    expect(el.querySelector('.panel-header')!.getAttribute('aria-expanded')).toBe('false');
   });
 });
 
@@ -245,8 +341,10 @@ describe('exportPanel', () => {
     const store = new Store(initialState());
     const localActions = { openExport: vi.fn(), openRequestJson: vi.fn() };
     const el = exportPanel(store, localActions);
-    [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('Export'))!.click();
-    [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('Request JSON'))!.click();
+    // Scope to the panel body: the disclosure header button's own title text is also "Export".
+    const buttons = [...el.querySelector('.panel-body')!.querySelectorAll('button')];
+    buttons.find((b) => b.textContent?.includes('Export'))!.click();
+    buttons.find((b) => b.textContent?.includes('Request JSON'))!.click();
     expect(localActions.openExport).toHaveBeenCalledTimes(1);
     expect(localActions.openRequestJson).toHaveBeenCalledTimes(1);
   });
