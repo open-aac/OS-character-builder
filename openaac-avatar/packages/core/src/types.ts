@@ -83,6 +83,13 @@ export interface AvatarInput {
    * has only one outfit ignore this.
    */
   clothing?: Partial<Record<GarmentSlot, string>>;
+  /**
+   * Hair style id from the art (e.g. `short_straight`, `long_textured`), or `none`. Omitted: the
+   * default style. Views are drawn with the same style.
+   */
+  hair?: string;
+  /** Facial expression id from the art (e.g. `content`, `surprised`). Omitted: `content`. */
+  expression?: string;
 }
 
 /** Where a garment is worn. */

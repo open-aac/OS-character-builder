@@ -22,6 +22,7 @@ Files: `art/source/front/bm_low.svg`, `art/source/front/bm_high.svg`
 - bm_high.svg: "shirt_tight_long_arm_R_upper" uses a gradient or pattern; only flat colours can be recoloured
 - bm_high.svg: "shirt_tight_long_arm_L_lower" uses a gradient or pattern; only flat colours can be recoloured
 - bm_high.svg: "shirt_tight_long_arm_L_upper" uses a gradient or pattern; only flat colours can be recoloured
+- `hair_long_textured_back`: still has a live path effect attached; the saved shape is used as-is
 - `leg_L_foot`: nodes are spread differently along the outline in low and high; paired by position along the outline instead; the outline is open in different places in the two files, so both are left open where high is (a joint, tucked under the next part)
 - `leg_L_upper`: nodes are spread differently along the outline in low and high; paired by position along the outline instead, reversed in high
 - `leg_R_foot`: nodes are spread differently along the outline in low and high; paired by position along the outline instead; the outline is open in different places in the two files, so both are left open where high is (a joint, tucked under the next part)
@@ -75,10 +76,19 @@ Files: `art/source/front/bm_low.svg`, `art/source/front/bm_high.svg`
 - `leg_R_foot@sit`: nodes are spread differently along the outline in low and high; paired by position along the outline instead; the outline is open in different places in the two files, so both are left open where high is (a joint, tucked under the next part)
 - `pants_tight_long_leg_R_upper@sit`: points were drawn in a different order (start shifted by 1 in high); re-ordered automatically
 - `pants_tight_long_leg_R_lower@sit`: nodes are spread differently along the outline in low and high; paired by position along the outline instead, start shifted by 1 in high
+- `expression_surprised_mouth_fill`: fill #010101 is not one of the placeholder colours, so it can't be recoloured (kept as drawn)
+- `expression_surprised_mouth_tongue`: fill #e56b6b is not one of the placeholder colours, so it can't be recoloured (kept as drawn)
+- `expression_angry_eyebrow_R`: still has a live path effect attached; the saved shape is used as-is
 
 ## For information
 
+- low: plain mouth, eyebrow_L, eyebrow_R, eye_L_fill, eye_L_iris, eye_L_line, eye_R_fill, eye_R_iris, eye_R_line, hair replaced by the hair and expression styles
+- high: plain mouth, eyebrow_L, eyebrow_R, eye_L_fill, eye_L_iris, eye_L_line, eye_R_fill, eye_R_iris, eye_R_line, hair replaced by the hair and expression styles
 - bm_low.svg: 49 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
+- addons/expressions.low.svg: 33 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
+- addons/hair-long_textured.low.svg: 6 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
+- addons/hair-short_straight.low.svg: 1 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
+- addons/hair-short_textured.low.svg: 2 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
 - bm_high.svg: 23 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
 - low: made seated clothing pants_loose_short_leg_L_upper@sit, pants_tight_long_leg_L_upper@sit, pants_tight_long_leg_L_lower@sit, pants_loose_short_leg_R_upper@sit, pants_tight_long_leg_R_upper@sit, pants_tight_long_leg_R_lower@sit
 - `shirt_tight_short_arm_L_upper`: drawn as the mirror image of shirt_tight_short_arm_R_upper in high (the two sleeves differed)

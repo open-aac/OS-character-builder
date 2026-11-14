@@ -6,7 +6,7 @@ import { applyToPoint, applyToSubpath, emptyBox, growBox, isEmptyBox, subpathBox
 import { getKit, morph } from './kit.js';
 import { jointMatrices, resolvePose, variantBase, type ResolvedPose } from './pose.js';
 import { RequestError, normalizeRequest, type NormalizedRequest } from './request.js';
-import { garmentOf, genericName, jointForPart, splitVariant, unitForPart, type UnitId } from './rig.js';
+import { expressionOf, garmentOf, genericName, hairOf, isBackHair, jointForPart, splitVariant, unitForPart, type UnitId } from './rig.js';
 import { joinGarmentPieces, mergeSleeves, outlineClothEdges, quarterLap, trimTorsoSkin } from './merge.js';
 import type { ArtKit, ColorRole, FillRole, GarmentSlot, StrokeRole, Subpath } from './types.js';
 
@@ -52,12 +52,23 @@ export const DEFAULT_VARIANT = 'open';
  * `open` set. A visible variant also hides the plain part of the same name.
  * `active` holds the pose's variants, e.g. `grip` (both sides) or `grip_R`.
  */
-export function visibleParts(kit: ArtKit, active: readonly string[], clothing: Partial<Record<GarmentSlot, string>> = {}): Set<string> {
+export function visibleParts(
+  kit: ArtKit,
+  active: readonly string[],
+  clothing: Partial<Record<GarmentSlot, string>> = {},
+  look: LookChoice = {},
+): Set<string> {
   const worn = wornStyles(kit, clothing);
+  const shown = shownLook(kit, look);
   const info = kit.parts.filter((p) => {
     // Other garments in the same slot are not drawn.
     const g = garmentOf(p.id);
-    return !g || worn[g.slot] === g.style;
+    if (g && worn[g.slot] !== g.style) return false;
+    // Nor are other hair styles or expressions.
+    const h = hairOf(p.id);
+    if (h && shown.hair !== h.style) return false;
+    const e = expressionOf(p.id);
+    return !e || shown.expression === e.name;
   }).map((p) => {
     const { base, variant } = splitVariant(p.id);
     const joint = jointForPart(base);
@@ -94,6 +105,61 @@ export function visibleParts(kit: ArtKit, active: readonly string[], clothing: P
   // A visible variant replaces the plain part, whatever garment style the plain part is drawn in.
   for (const p of info) if (!p.variant && !replaced.has(genericName(p.id))) visible.add(p.id);
   return visible;
+}
+
+/** Hair style (or `none`) and expression asked for; null or omitted means the art's default. */
+export interface LookChoice {
+  hair?: string | null;
+  expression?: string | null;
+}
+
+/** Hair styles the art offers, in drawing order. Empty if the art has only its plain hair. */
+export function kitHairStyles(kit: ArtKit): string[] {
+  const out: string[] = [];
+  for (const p of kit.parts) {
+    const h = hairOf(p.id);
+    if (h && !out.includes(h.style)) out.push(h.style);
+  }
+  return out;
+}
+
+/** Expressions the art offers, in drawing order. */
+export function kitExpressions(kit: ArtKit): string[] {
+  const out: string[] = [];
+  for (const p of kit.parts) {
+    const e = expressionOf(p.id);
+    if (e && !out.includes(e.name)) out.push(e.name);
+  }
+  return out;
+}
+
+/** Style drawn when no hair is asked for, if the art has it (else the first style). */
+export const DEFAULT_HAIR = 'short_straight';
+/** Expression drawn when none is asked for, if the art has it (else the first). */
+export const DEFAULT_EXPRESSION = 'content';
+
+/**
+ * The hair style and expression drawn: the requested ones, else the defaults. `hair` is `none` for
+ * no hair. Throws RequestError for ones the art doesn't have. A view without hair or expression
+ * art draws what its plain parts show, and both are undefined.
+ */
+export function shownLook(kit: ArtKit, look: LookChoice = {}): { hair?: string; expression?: string } {
+  const hairs = kitHairStyles(kit);
+  const expressions = kitExpressions(kit);
+  const problems: string[] = [];
+  const out: { hair?: string; expression?: string } = {};
+  if (hairs.length) {
+    const want = look.hair;
+    if (want && want !== 'none' && !hairs.includes(want)) problems.push(`avatar.hair must be one of: none, ${hairs.join(', ')}`);
+    out.hair = want && (want === 'none' || hairs.includes(want)) ? want : hairs.includes(DEFAULT_HAIR) ? DEFAULT_HAIR : hairs[0]!;
+  }
+  if (expressions.length) {
+    const want = look.expression;
+    if (want && !expressions.includes(want)) problems.push(`avatar.expression must be one of: ${expressions.join(', ')}`);
+    out.expression = want && expressions.includes(want) ? want : expressions.includes(DEFAULT_EXPRESSION) ? DEFAULT_EXPRESSION : expressions[0]!;
+  }
+  if (problems.length) throw new RequestError(problems);
+  return out;
 }
 
 /** Garment styles the art offers in each slot, in drawing order. */
@@ -141,6 +207,14 @@ export function availableVariants(kit: ArtKit, clothing: Partial<Record<GarmentS
 
 const SEATED_MIN_BODY = 0.05;
 
+/** Side view: a hip bent this far (degrees either way) puts the thigh in the lap, whatever pose it came from. */
+const LAP_HIP = 15;
+
+/** Whether the thighs are swung far enough from standing that the hips and thighs have to be fitted together. */
+function lapped(pose: ResolvedPose, view: string): boolean {
+  return !!pose.seated || (view === 'side' && ['hip_L', 'hip_R'].some((j) => Math.abs(pose.angles[j] ?? 0) >= LAP_HIP));
+}
+
 /**
  * Morph to the body size, apply the pose, and return the parts in drawing order.
  * `poseOverride` replaces the resolved pose (used for animated previews).
@@ -150,17 +224,18 @@ export function poseFigure(kit: ArtKit, req: NormalizedRequest, poseOverride?: R
   const pose = poseOverride ?? resolvePose(req.pose, req.avatar.body, available, kit.view);
   // Side view sitting from standing art: on the very slimmest body the thigh is too thin to reach the
   // hips, so the figure is drawn at least SEATED_MIN_BODY (a difference too small to see elsewhere).
-  const body = pose.seated && kit.view === 'side' ? Math.max(req.avatar.body, SEATED_MIN_BODY) : req.avatar.body;
+  const body = lapped(pose, kit.view) && kit.view === 'side' ? Math.max(req.avatar.body, SEATED_MIN_BODY) : req.avatar.body;
   const fig = morph(kit, body);
   const mats = jointMatrices(fig.pivots, pose);
-  const visible = visibleParts(kit, pose.variants.filter((v) => available.has(variantBase(v))), req.avatar.clothing);
+  const visible = visibleParts(kit, pose.variants.filter((v) => available.has(variantBase(v))), req.avatar.clothing, req.avatar);
 
   const partIndex = new Map(kit.parts.map((p, i) => [p.id, i]));
   const byUnit = new Map<UnitId, PosedPart[]>();
   for (const { part, shapes } of fig.parts) {
     if (!visible.has(part.id)) continue;
     const joint = jointForPart(part.id);
-    const unit = unitForPart(part.id, joint);
+    // Hair hanging behind the body is the back layer. In the side view it is drawn over the head, as drawn.
+    const unit: UnitId = isBackHair(part.id) && kit.view !== 'side' ? 'hairBack' : unitForPart(part.id, joint);
     const m = joint ? mats.get(joint) : undefined;
     const posed: PosedPart = {
       id: part.id,
@@ -184,7 +259,8 @@ export function poseFigure(kit: ArtKit, req: NormalizedRequest, poseOverride?: R
   } else {
     const seen = new Set<UnitId>();
     // The bare torso is always the back layer, even if a pose's order leaves it out.
-    const order: readonly UnitId[] = pose.order.includes('trunk') ? pose.order : ['trunk', ...pose.order];
+    const withTrunk: readonly UnitId[] = pose.order.includes('trunk') ? pose.order : ['trunk', ...pose.order];
+    const order: readonly UnitId[] = withTrunk.includes('hairBack') ? withTrunk : ['hairBack', ...withTrunk];
     for (const u of order) {
       seen.add(u);
       ordered.push(...(byUnit.get(u) ?? []));
@@ -205,7 +281,7 @@ export function poseFigure(kit: ArtKit, req: NormalizedRequest, poseOverride?: R
   // Sleeve merging fixes the front art's T-pose sleeves once the arms hang down. The other views are
   // drawn with the arms down already, so their sleeves keep the designer's outlines.
   const merged = kit.view === 'front' ? mergeSleeves(layered, pose.onTop, lineWidth, posedPivots) : trimTorsoSkin(layered, restArmsOverTorso(kit, fig.parts), fig.pivots['neck'], lineWidth);
-  const seated = !pose.seated ? merged : quarterLap(merged, posedPivots, lineWidth, kit.view === 'side');
+  const seated = !lapped(pose, kit.view) ? merged : quarterLap(merged, posedPivots, lineWidth, kit.view === 'side');
   const parts = outlineClothEdges(seated, lineWidth);
   return { parts, pose };
 }

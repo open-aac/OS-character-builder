@@ -16,6 +16,17 @@ describe('CLI', () => {
     expect(r.stdout).toContain('fill="#8d5524"');
   });
 
+  it('picks the hair style and expression, and lists them', () => {
+    const r = run('render', '--hair-style', 'long_straight', '--expression', 'angry', '--hair', '#aa0000');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('id="hair_long_straight_back"');
+    expect(r.stdout).toContain('id="expression_angry_mouth"');
+    expect(r.stdout).not.toContain('expression_content_');
+    expect(run('render', '--hair-style', 'none').stdout).not.toMatch(/id="hair_/);
+    expect(run('render', '--hair-style', 'mohawk').stderr).toContain('avatar.hair');
+    expect(run('presets').stdout).toMatch(/Hair \(--hair-style\): none, .*long_textured[\s\S]*Expressions \(--expression\): .*angry/);
+  });
+
   it('reports every input problem and exits non-zero', () => {
     const r = run('render', '--preset', 'flying', '--body', '3');
     expect(r.status).toBe(1);

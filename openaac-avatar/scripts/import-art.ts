@@ -21,8 +21,8 @@
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import { elements, label, normalise, setLabel, viewOf } from './lib/art-names.js';
 
-const NS_INKSCAPE = 'http://www.inkscape.org/namespaces/inkscape';
 /** A garment group, e.g. `shirt_tight_long`. */
 const GARMENT = /^(shirt|top|dress|jacket|coat|pants|shorts|trousers|skirt|leggings)_[a-z]+_[a-z]+$/;
 const root = resolve(import.meta.dirname, '..');
@@ -30,49 +30,6 @@ const [lowFile, highFile] = process.argv.slice(2);
 if (!lowFile || !highFile) {
   console.error('usage: pnpm art:import <low.svg> <high.svg>');
   process.exit(1);
-}
-
-/** View id for a top-level layer label. */
-function viewOf(label: string): string {
-  if (/3-4|three|quarter/i.test(label)) return 'three-quarter';
-  if (/side|profile/i.test(label)) return 'side';
-  return 'front';
-}
-
-const label = (el: Element) => el.getAttributeNS(NS_INKSCAPE, 'label') || el.getAttribute('inkscape:label') || '';
-const setLabel = (el: Element, v: string) => el.setAttribute('inkscape:label', v);
-const elements = (el: Element) => {
-  const out: Element[] = [];
-  for (let n = el.firstChild; n; n = n.nextSibling) if (n.nodeType === 1) out.push(n as Element);
-  return out;
-};
-
-/** The figure side named by the nearest sided ancestor group (`arm_L`, `eye_R`, …). */
-function sideFrom(groups: string[]): { side: string; group: string } | null {
-  for (let i = groups.length - 1; i >= 0; i--) {
-    const m = /^(.*)_([LR])(@\w+)?$/.exec(groups[i]!);
-    if (m) return { side: m[2]!, group: m[1]! };
-  }
-  return null;
-}
-
-function normalise(name: string, groups: string[], view: string): string {
-  let n = name;
-  const sided = sideFrom(groups);
-  if (sided && !/_[LR](_|@|$)/.test(n)) {
-    if (sided.group === 'arm' && n === 'hand') n = `arm_${sided.side}_hand`;
-    else if (n.startsWith(`${sided.group}_`)) n = `${sided.group}_${sided.side}${n.slice(sided.group.length)}`;
-  }
-  if (view === 'side') {
-    n = n
-      .replace(/^(arm|leg)(_|$)/, '$1_L$2')
-      .replace(/^(shirt|pants)_(arm|leg)_/, '$1_$2_L_')
-      .replace(/^(eye|eyebrow|ear)(_|$)/, '$1_L$2')
-      .replace(/^hand$/, 'arm_L_hand')
-      .replace(/^pivot_(shoulder|elbow|wrist|hip|knee|ankle)$/, 'pivot_$1_L');
-  }
-  if (view === 'three-quarter') n = n.replace(/^ear$/, 'ear_L');
-  return n;
 }
 
 function walk(el: Element, groups: string[], view: string, renamed: Map<string, string>): void {

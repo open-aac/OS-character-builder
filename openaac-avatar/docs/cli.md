@@ -16,6 +16,8 @@ openaac-avatar render --preset waving --body 0.7 \
 | `--view front\|three-quarter\|side` | Which art (default front) |
 | `--preset <id>` | Template pose (`presets` lists which views each one is offered in) |
 | `--wear slot=style` | Garment; repeatable (`--wear top=tight_long --wear bottom=loose_short`) |
+| `--hair-style <style>` | Hair style or `none` (`presets` lists the styles); `--hair` is the hair colour |
+| `--expression <name>` | Facial expression (`presets` lists them) |
 | `--adjust joint=deg` | Adjust a joint; repeatable (`--adjust elbow_R=15 --adjust neck=-5`) |
 | `--body <0..1>` | Body size |
 | `--skin --hair --iris --eye-white --top --bottom --ink <#hex>` | Colours |

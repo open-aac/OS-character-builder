@@ -109,6 +109,59 @@ describe('compileKit', () => {
     expect(r.findings.some((f) => f.severity === 'error' && /missing from high/.test(f.message))).toBe(true);
   });
 
+  describe('hair and expression add-ons', () => {
+    const shape = (id: string, d: string, fill = '#2b190d') => `<path inkscape:label="${id}" d="${d}" style="fill:${fill};stroke:#000;stroke-width:5"/>`;
+    const base = (dx: number) =>
+      svg(
+        shape('hair', `M${dx} 0 L10 0 L10 10 Z`) +
+          shape('head', `M${dx} 0 L${40 + dx} 0 L${40 + dx} 40 L${dx} 40 Z`, '#d59965') +
+          shape('mouth', `M${dx} 20 L30 20 L30 25 Z`, '#ffffff') +
+          pivots(dx),
+      );
+    const addon = (name: string, ...parts: string[]) => ({ name, xml: svg(parts.join('')) });
+    const compile = (view = 'front') =>
+      compileKit({
+        low: { name: 'low', xml: base(0) },
+        high: { name: 'high', xml: base(6) },
+        addons: {
+          low: [
+            addon('addons/expressions.low.svg', shape('expression_content_mouth', 'M0 20 L30 20 L30 25 Z', '#ffffff')),
+            addon('addons/hair-short_straight.low.svg', shape('hair_short_straight_front', 'M0 0 L10 0 L10 10 Z')),
+            addon('addons/hair-long_straight.low.svg', shape('hair_long_straight_back', 'M0 0 L10 0 L10 50 Z'), shape('hair_long_straight_front', 'M0 0 L10 0 L10 5 Z')),
+          ],
+          high: [],
+        },
+        view,
+      });
+
+    it('uses low-only art at both ends, moved with the head, and drops the plain parts it replaces', () => {
+      const r = compile();
+      expect(r.findings.filter((f) => f.severity === 'error')).toEqual([]);
+      const ids = r.kit!.parts.map((p) => p.id);
+      expect(ids).toEqual(expect.arrayContaining(['expression_content_mouth', 'hair_short_straight_front', 'hair_long_straight_back']));
+      expect(ids).not.toContain('hair');
+      expect(ids).not.toContain('mouth');
+      const mouth = r.kit!.parts.find((p) => p.id === 'expression_content_mouth')!;
+      const minX = (pts: number[]) => Math.min(...pts.filter((_, i) => i % 2 === 0));
+      expect(minX(mouth.shapes.high[0]!.pts) - minX(mouth.shapes.low[0]!.pts)).toBeCloseTo(6);
+    });
+
+    it('draws back hair first, except in the side view where it follows the head', () => {
+      const ids = (view: string) => compile(view).kit!.parts.map((p) => p.id);
+      expect(ids('front')[0]).toBe('hair_long_straight_back');
+      expect(ids('three-quarter')[0]).toBe('hair_long_straight_back');
+      const side = ids('side');
+      expect(side.indexOf('hair_long_straight_back')).toBeGreaterThan(side.indexOf('head'));
+      expect(side.indexOf('hair_long_straight_back')).toBeLessThan(side.indexOf('expression_content_mouth'));
+    });
+
+    it('draws short hair behind the face outside the front view', () => {
+      const ids = (view: string) => compile(view).kit!.parts.map((p) => p.id);
+      expect(ids('three-quarter').indexOf('hair_short_straight_front')).toBeLessThan(ids('three-quarter').indexOf('expression_content_mouth'));
+      expect(ids('front').indexOf('hair_short_straight_front')).toBeGreaterThan(ids('front').indexOf('head'));
+    });
+  });
+
   it("compiles the designer's real files without errors", () => {
     const dir = resolve(import.meta.dirname, '../../../art/source/front');
     const r = compileKit({

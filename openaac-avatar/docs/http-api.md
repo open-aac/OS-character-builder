@@ -29,7 +29,7 @@ The same render from query parameters. The URL can go straight into an `<img src
 /render.svg?view=side&preset=pointing&wearTop=tight_long&wearBottom=loose_short
 ```
 
-`view` picks the art (it also works on `POST /render`, or as `"view"` in the request body). `wearTop` and `wearBottom` pick garments.
+`view` picks the art (it also works on `POST /render`, or as `"view"` in the request body). `wearTop` and `wearBottom` pick garments; `hairStyle` and `expression` pick the hair style and facial expression (`hair` is the hair colour).
 
 | Parameter | Example |
 |---|---|

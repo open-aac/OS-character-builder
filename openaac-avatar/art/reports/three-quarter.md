@@ -45,10 +45,16 @@ Files: `art/source/three-quarter/bm_low.svg`, `art/source/three-quarter/bm_high.
 - `shirt_loose_short_arm_L_upper`: points were drawn in a different order (start shifted by 2 in high); re-ordered automatically
 - `nose_line`: colours differ between files (low url(#lineargradient84), high url(#lineargradient98)); using high
 - `nose_line`: fill url(#lineargradient98) is not one of the placeholder colours, so it can't be recoloured (kept as drawn)
+- `expression_surprised_mouth_fill`: fill #010101 is not one of the placeholder colours, so it can't be recoloured (kept as drawn)
+- `expression_surprised_mouth_tongue`: fill #e56b6b is not one of the placeholder colours, so it can't be recoloured (kept as drawn)
 
 ## For information
 
+- low: plain hair, eye_L_fill, eye_L_iris, eye_L_line, eye_R_fill, eye_R_iris, eye_R_line, eyebrow_L, eyebrow_R, mouth replaced by the hair and expression styles
+- high: plain hair, eye_L_fill, eye_L_iris, eye_L_line, eye_R_fill, eye_R_iris, eye_R_line, eyebrow_L, eyebrow_R, mouth replaced by the hair and expression styles
 - bm_low.svg: 12 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
+- addons/expressions.low.svg: 12 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
+- addons/hair-long_textured.low.svg: 6 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
 - bm_high.svg: 14 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
 - low: made seated clothing pants_loose_short_leg_L_upper@sit, pants_tight_long_leg_L_upper@sit, pants_tight_long_leg_L_lower@sit, pants_loose_short_leg_R_upper@sit, pants_tight_long_leg_R_upper@sit, pants_tight_long_leg_R_lower@sit
 - low: made stand-in clothing shirt_loose_short_body, shirt_tight_long_arm_L_lower, shirt_tight_long_arm_L_upper, shirt_loose_short_arm_L_upper, shirt_tight_long_arm_R_lower, shirt_tight_long_arm_R_upper, shirt_loose_short_arm_R_upper, pants_tight_long_leg_L_lower, pants_tight_long_leg_L_upper, pants_loose_short_leg_L_upper, pants_tight_long_leg_R_lower, pants_tight_long_leg_R_upper, pants_loose_short_leg_R_upper

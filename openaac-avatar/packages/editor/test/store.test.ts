@@ -1,6 +1,6 @@
 import { DEFAULT_COLORS, RequestError, getKit, kitGarments, type RenderRequest } from '@openaac-avatar/core';
 import { describe, expect, it, vi } from 'vitest';
-import { Store, defaultClothing, fromRequest, initialState, toRequest } from '../src/state/store';
+import { Store, defaultClothing, defaultLook, fromRequest, initialState, toRequest } from '../src/state/store';
 
 describe('initialState', () => {
   it('is the figure the editor shows on first load', () => {
@@ -20,6 +20,28 @@ describe('initialState', () => {
     const g = kitGarments(getKit('front'));
     expect(defaultClothing()).toEqual({ top: g.top[0], bottom: g.bottom[0] });
     expect(initialState().clothing).toEqual(defaultClothing());
+  });
+});
+
+describe('hair and expression', () => {
+  it('start as the art\'s defaults', () => {
+    expect(defaultLook()).toEqual({ hair: 'short_straight', expression: 'content' });
+    expect(initialState()).toMatchObject(defaultLook());
+  });
+
+  it('are saved in the request and loaded back, including no hair', () => {
+    const s = { ...initialState(), hair: 'none', expression: 'angry' };
+    expect(toRequest(s).avatar).toMatchObject({ hair: 'none', expression: 'angry' });
+    expect(fromRequest(toRequest(s))).toEqual(s);
+  });
+
+  it('fall back to the defaults when the request leaves them out', () => {
+    const req: RenderRequest = { view: 'front', pose: { preset: 'standing' }, avatar: {}, options: {} };
+    expect(fromRequest(req)).toMatchObject(defaultLook());
+  });
+
+  it('are rejected when the art does not have them', () => {
+    expect(() => fromRequest({ avatar: { hair: 'mohawk' } })).toThrow(RequestError);
   });
 });
 

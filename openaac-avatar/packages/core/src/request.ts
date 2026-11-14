@@ -26,7 +26,16 @@ export const FRAMINGS: readonly Framing[] = ['full', 'upper', 'head', 'canvas'];
 export interface NormalizedRequest {
   view: string;
   pose: Required<PoseInput> & { adjust: Record<string, number> };
-  avatar: { body: number; colors: Record<ColorRole, string>; lineWeight: number; clothing: Partial<Record<GarmentSlot, string>> };
+  avatar: {
+    body: number;
+    colors: Record<ColorRole, string>;
+    lineWeight: number;
+    clothing: Partial<Record<GarmentSlot, string>>;
+    /** Hair style id, `none`, or null for the art's default. */
+    hair: string | null;
+    /** Expression id, or null for the art's default. */
+    expression: string | null;
+  };
   options: Required<Omit<RenderOptions, 'title' | 'background'>> & { title: string | null; background: string | null };
 }
 
@@ -109,6 +118,18 @@ export function normalizeRequest(input: unknown): NormalizedRequest {
     }
   }
 
+  // Hair and expression: checked against the art's offerings when rendering.
+  const choice = (v: unknown, name: string, example: string): string | null => {
+    if (v === undefined || v === null) return null;
+    if (typeof v !== 'string' || !/^[a-z]+(?:_[a-z]+)?$/.test(v)) {
+      problems.push(`avatar.${name} must be an id like "${example}"`);
+      return null;
+    }
+    return v;
+  };
+  const hair = choice(avatar.hair, 'hair', 'short_straight');
+  const expression = choice(avatar.expression, 'expression', 'content');
+
   // Options
   const o: RenderOptions = isObj(req.options) ? req.options : {};
   if (req.options !== undefined && !isObj(req.options)) problems.push('options must be an object');
@@ -141,6 +162,8 @@ export function normalizeRequest(input: unknown): NormalizedRequest {
       colors,
       lineWeight: num(avatar.lineWeight, 'avatar.lineWeight', 0.25, 4, 1),
       clothing,
+      hair,
+      expression,
     },
     options: {
       framing,

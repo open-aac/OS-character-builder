@@ -49,6 +49,23 @@ export const GARMENT_LABELS: Readonly<Record<'top' | 'bottom', Readonly<Record<s
   bottom: { tight_short: 'Fitted shorts', loose_short: 'Loose shorts', tight_long: 'Trousers', loose_long: 'Loose trousers' },
 };
 
+/** Names for the hair styles in the art; any other style gets a name made from its id. */
+export const HAIR_LABELS: Readonly<Record<string, string>> = {
+  none: 'No hair',
+  short_straight: 'Short, straight',
+  short_textured: 'Short, curly',
+  long_straight: 'Long, straight',
+  long_textured: 'Long, curly',
+};
+
+export const EXPRESSION_LABELS: Readonly<Record<string, string>> = {
+  content: 'Content',
+  surprised: 'Surprised',
+  unhappy: 'Unhappy',
+  puzzled: 'Puzzled',
+  angry: 'Angry',
+};
+
 /** `loose_long` → "Loose, long". */
 export const styleLabel = (style: string) => {
   const t = style.replace(/_/g, ', ');

@@ -49,6 +49,19 @@ Each garment is a set of parts named `<kind>_<style>_<piece>`, e.g. `shirt_tight
 - Front view: the two sleeves are made symmetrical when compiling. The left sleeve is replaced by the right one mirrored about the neck, so draw the right sleeve with care (the compile report lists any left sleeve that differed).
 - The seated legs (`@sit`) are drawn with shorts (`pants_leg_*_upper@sit`). With long trousers, the sitting poses pose the standing legs instead; seated trouser legs (`pants_tight_long_leg_*_upper@sit` and `_lower@sit`) would remove that compromise.
 
+### Hair styles and expressions
+
+Hair styles and expressions are alternatives, like garments. Hair parts are named `hair_<length>_<texture>_<piece>` (the style is two words, e.g. `hair_long_straight_front`); a piece called `back` hangs behind the body. Expression parts are named `expression_<name>_<piece>` (e.g. `expression_surprised_eye_L_fill`, `expression_angry_mouth`); the name is one word. One style and one expression is drawn; the editor's Look panel and the request's `avatar.hair` and `avatar.expression` pick them, and new ones appear by themselves. The plain `hair`, `mouth`, `eyebrow` and `eye_…` parts are dropped from the kit once the add-ons exist.
+
+They are delivered as low-body files only, one `*_expressions.svg` and one `*_hair_<length>_<texture>.svg` per style, with the head's parts in a `head` group:
+
+```
+pnpm art:import-styles [folder]   # default art/source/delivered/Hair+FacialExpressions
+pnpm art:compile --view front     # and three-quarter, side
+```
+
+The import writes `art/source/<view>/addons/expressions.low.svg` and `hair-<style>.low.svg`, renaming parts as above, and lists anything it skipped or fixed. An add-on with only a `.low.svg` is used for both ends of the body slider, moved by how far the head moves between the two body files. A hair style the designer later draws for the broad body can be added as `hair-<style>.high.svg`. The default style is `short_straight` and the default expression `content`.
+
 ### Views
 
 The front is drawn in a T-pose; the ¾ and side views with the arms hanging. Templates give angles per view (see `views` in `packages/core/src/presets.ts`), so a pose is offered in a view once it has been set up there. Sitting needs seated art for that view.

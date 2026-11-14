@@ -88,7 +88,7 @@ export function mountPreview(store: Store): void {
 
   const drawIcons = () => {
     const s = store.state;
-    const look = JSON.stringify([s.view, s.body, s.colors, s.lineWeight, s.clothing]);
+    const look = JSON.stringify([s.view, s.body, s.colors, s.lineWeight, s.clothing, s.hair, s.expression]);
     const icons = document.querySelectorAll<HTMLElement>('.pose-icon[data-preset]');
     if (look === lastLook && ![...icons].some((i) => !i.firstElementChild)) return;
     lastLook = look;

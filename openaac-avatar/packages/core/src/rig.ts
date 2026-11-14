@@ -28,9 +28,10 @@ export interface JointDef {
  * between garments shows clothing behind it rather than skin.
  * `torso` is the clothing on the torso.
  */
-export type UnitId = 'trunk' | 'leg_L' | 'leg_R' | 'arm_L' | 'arm_R' | 'torso' | 'head';
+export type UnitId = 'hairBack' | 'trunk' | 'leg_L' | 'leg_R' | 'arm_L' | 'arm_R' | 'torso' | 'head';
 
-export const DEFAULT_UNIT_ORDER: readonly UnitId[] = ['trunk', 'leg_L', 'leg_R', 'torso', 'arm_L', 'arm_R', 'head'];
+/** `hairBack` is the hair behind the body (long hair hanging down the back): the very back layer. */
+export const DEFAULT_UNIT_ORDER: readonly UnitId[] = ['hairBack', 'trunk', 'leg_L', 'leg_R', 'torso', 'arm_L', 'arm_R', 'head'];
 
 function sideJoints(side: Side): JointDef[] {
   return [
@@ -62,7 +63,7 @@ export const SCALE_LIMITS: readonly [number, number] = [0.2, 1.5];
 /* Part → joint rules                                                   */
 /* ------------------------------------------------------------------ */
 
-const HEAD_PART = /^(head|hair|ear(_[LR])?|nose|mouth|eye|eyebrow|eyelash|hat|cap|glasses|beard|moustache|mustache|headwear|hood)(_|$)/;
+const HEAD_PART = /^(head|hair|expression|ear(_[LR])?|nose|mouth|eye|eyebrow|eyelash|hat|cap|glasses|beard|moustache|mustache|headwear|hood)(_|$)/;
 
 const RULES: readonly [RegExp, (m: RegExpExecArray) => string][] = [
   [/(?:^|_)arm_([LR])_upper$/, (m) => `shoulder_${m[1]}`],
@@ -163,6 +164,29 @@ export function garmentOf(partId: string): { slot: GarmentSlot; style: string; k
   const m = GARMENT_PART.exec(splitVariant(partId).base);
   if (!m) return null;
   return { slot: TOP_KIND.test(m[1]!) ? 'top' : 'bottom', style: m[2]!, kind: m[1]! };
+}
+
+const HAIR_PART = /^hair_([a-z]+_[a-z]+)_([a-zA-Z0-9_]+)$/;
+const EXPRESSION_PART = /^expression_([a-z]+)_([a-zA-Z0-9_]+)$/;
+
+/**
+ * The hair style a part belongs to, from its name: `hair_long_straight_back` is the
+ * `long_straight` style. Plain names (`hair`) belong to no particular style.
+ */
+export function hairOf(partId: string): { style: string; piece: string } | null {
+  const m = HAIR_PART.exec(splitVariant(partId).base);
+  return m ? { style: m[1]!, piece: m[2]! } : null;
+}
+
+/** The facial expression a part belongs to: `expression_surprised_eye_L_fill` is `surprised`. */
+export function expressionOf(partId: string): { name: string; piece: string } | null {
+  const m = EXPRESSION_PART.exec(splitVariant(partId).base);
+  return m ? { name: m[1]!, piece: m[2]! } : null;
+}
+
+/** Hair hanging behind the body, as opposed to the part of the style drawn over the head. */
+export function isBackHair(partId: string): boolean {
+  return hairOf(partId)?.piece === 'back';
 }
 
 /** A garment part's name without its style: `pants_tight_short_leg_L_upper` → `pants_leg_L_upper`. */

@@ -13,7 +13,9 @@ A request describes one symbol. The CLI (`--request`, `batch`), the HTTP API (`P
     "body": 0.5,
     "colors": { "skin": "#8d5524", "hair": "#1b1b1b", "top": "#e53935", "bottom": "#1565c0" },
     "lineWeight": 1,
-    "clothing": { "top": "tight_short", "bottom": "tight_long" }
+    "clothing": { "top": "tight_short", "bottom": "tight_long" },
+    "hair": "long_straight",
+    "expression": "content"
   },
   "options": {
     "framing": "full",
@@ -60,6 +62,8 @@ Natural ranges (relative to the drawn rest pose, before any template):
 | `colors` | placeholders | Any of `skin`, `hair`, `iris`, `eyeWhite`, `top`, `bottom`, `ink` as `#rgb` or `#rrggbb` |
 | `lineWeight` | `1` | 0.25 to 4; multiplies both line weights (10 and 5 at the 1000 px canvas). The editor offers 0.75 to 1, per the art direction (heavier loses legibility, thinner shows gaps) |
 | `clothing` | first style in the art | `{ "top": …, "bottom": … }`. Front styles now: top `tight_short`, `loose_short`, `tight_long` (long sleeves); bottom `tight_short`, `loose_short`, `tight_long` (trousers). Views with one outfit ignore it |
+| `hair` | `short_straight` | Hair style from the art, or `none`: `short_straight`, `short_textured`, `long_straight`, `long_textured`. Its colour is `colors.hair` |
+| `expression` | `content` | Facial expression from the art: `content`, `surprised`, `unhappy`, `puzzled`, `angry` |
 
 ## options
 

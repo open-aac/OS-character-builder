@@ -23,10 +23,16 @@ Files: `art/source/side/bm_low.svg`, `art/source/side/bm_high.svg`
 - `shirt_tight_long_arm_L_lower`: points were drawn in a different order (start shifted by 46 in high); re-ordered automatically
 - `shirt_loose_short_arm_L_upper`: points were drawn in a different order (start shifted by 42 in high); re-ordered automatically
 - `head`: nodes are spread differently along the outline in low and high; paired by position along the outline instead
+- `expression_surprised_mouth_fill`: fill #010101 is not one of the placeholder colours, so it can't be recoloured (kept as drawn)
+- `expression_surprised_mouth_tongue`: fill #e56b6b is not one of the placeholder colours, so it can't be recoloured (kept as drawn)
 
 ## For information
 
+- low: plain hair, mouth, eye_L_fill, eye_L_iris, eye_L_line, eyebrow_L replaced by the hair and expression styles
+- high: plain hair, mouth, eye_L_fill, eye_L_iris, eye_L_line, eyebrow_L replaced by the hair and expression styles
 - bm_low.svg: 1 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
+- addons/expressions.low.svg: 7 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
+- addons/hair-long_textured.low.svg: 7 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
 - bm_high.svg: 1 part(s) are scaled unevenly in Inkscape; outlines are redrawn at the exact style-guide weight, so nothing to fix.
 - low: made stand-in clothing shirt_loose_short_body, shirt_tight_long_arm_L_lower, shirt_tight_long_arm_L_upper, shirt_loose_short_arm_L_upper, pants_tight_long_leg_L_lower, pants_tight_long_leg_L_upper, pants_loose_short_leg_L_upper
 - low: far arm made from the near arm (15 parts)

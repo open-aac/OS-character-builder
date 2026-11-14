@@ -5,6 +5,7 @@ import { adjustFields } from '../src/ui/panels/adjust-panel';
 import { bodyPanel } from '../src/ui/panels/body-panel';
 import { clothingFields } from '../src/ui/panels/clothing-panel';
 import { coloursFields } from '../src/ui/panels/colours-panel';
+import { expressionFields, hairFields } from '../src/ui/panels/face-panel';
 import { exportPanel } from '../src/ui/panels/export-panel';
 import { linesFields } from '../src/ui/panels/lines-panel';
 import { lookPanel } from '../src/ui/panels/look-panel';
@@ -182,6 +183,28 @@ describe('clothingFields', () => {
   });
 });
 
+describe('hairFields and expressionFields', () => {
+  it('offer no hair and every style from the art, with the current one selected', () => {
+    const el = fieldContainer(...hairFields(new Store(initialState())));
+    const labels = [...chipsIn(el, 'Hair').querySelectorAll('.chip-label')].map((c) => c.textContent);
+    expect(labels).toEqual(['No hair', 'Short, straight', 'Short, curly', 'Long, straight', 'Long, curly']);
+    expect(chipsIn(el, 'Hair').querySelector('.chip.on .chip-label')?.textContent).toBe('Short, straight');
+  });
+
+  it('picking a style or expression updates the state and rebuilds', () => {
+    const store = new Store(initialState());
+    const onRebuild = vi.fn();
+    store.on('rebuild', onRebuild);
+    chipFor(chipsIn(fieldContainer(...hairFields(store)), 'Hair'), 'No hair').click();
+    expect(store.state.hair).toBe('none');
+    const face = chipsIn(fieldContainer(...expressionFields(store)), 'Expression');
+    expect([...face.querySelectorAll('.chip-label')].map((c) => c.textContent)).toEqual(['Content', 'Surprised', 'Unhappy', 'Puzzled', 'Angry']);
+    chipFor(face, 'Surprised').click();
+    expect(store.state.expression).toBe('surprised');
+    expect(onRebuild).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('coloursFields', () => {
   it('shows a colour input per role except ink', () => {
     const store = new Store(initialState());
@@ -251,10 +274,12 @@ describe('adjustFields', () => {
 });
 
 describe('lookPanel', () => {
-  it('composes clothing, colours and line weight under one "Look" panel', () => {
+  it('composes hair, expression, clothing, colours and line weight under one "Look" panel', () => {
     const store = new Store(initialState());
     const el = lookPanel(store);
     expect(el.querySelector('.panel-title-text')?.textContent).toBe('Look');
+    expect(chipsIn(el, 'Hair')).toBeTruthy();
+    expect(chipsIn(el, 'Expression')).toBeTruthy();
     expect(chipsIn(el, 'Top')).toBeTruthy();
     expect(el.querySelector('#colour-skin')).toBeTruthy();
     expect(el.querySelector('input[type="range"]')).toBeTruthy();

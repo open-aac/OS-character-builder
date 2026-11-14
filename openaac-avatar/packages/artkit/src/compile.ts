@@ -2,7 +2,7 @@
  * Turns the two body extremes (slim `low`, broad `high`) into one art kit.
  */
 import { addFarArm, deriveClothes, deriveSeatedTrousers } from './derive.js';
-import { jointForPart, type ArtKit, type FillRole, type KitPart, type StrokeRole, type Subpath } from '@openaac-avatar/core';
+import { jointForPart, expressionOf, hairOf, isBackHair, type ArtKit, type FillRole, type KitPart, type StrokeRole, type Subpath } from '@openaac-avatar/core';
 import { parseInkscapeSvg, type RawArt, type RawPart } from './inkscape.js';
 import { matchSubpaths, type GapHint } from './match.js';
 
@@ -14,7 +14,10 @@ export interface SourceFile {
 export interface CompileInput {
   low: SourceFile;
   high: SourceFile;
-  /** Extra art merged into each extreme, e.g. stand-in parts (`addons/*.low.svg`). */
+  /**
+   * Extra art merged into each extreme, e.g. stand-in parts (`addons/*.low.svg`). A low add-on with no
+   * matching `.high.svg` (hair and expressions) is used for both extremes, moved with the head.
+   */
   addons?: { low: SourceFile[]; high: SourceFile[] };
   view?: string;
 }
@@ -46,7 +49,7 @@ export const STROKE_WIDTHS: Record<StrokeRole, number> = { body: 10, face: 5 };
 
 /** White is used for three things; the part name says which. */
 function whiteRole(id: string): FillRole {
-  if (/^eye_[LR]_fill$|^eye.*white/i.test(id)) return 'eyeWhite';
+  if (/^eye_[LR]_fill$|^eye.*white/i.test(id) || /^expression_[a-z]+_eye_[LR]_fill$/.test(id)) return 'eyeWhite';
   if (/^(shirt|top|dress|jacket|coat|sleeve)/i.test(id)) return 'top';
   return 'fixed';
 }
@@ -139,11 +142,45 @@ function gapHint(id: string, low: RawArt, high: RawArt): GapHint | undefined {
 }
 const roundSubpath = (sp: Subpath): Subpath => ({ closed: sp.closed, pts: sp.pts.map(round) });
 
+/** Parts placed by rule rather than at the end, so a later add-on lands after earlier ones of its kind. */
+const placedAfterHead = new WeakSet<RawPart>();
+const placedFirst = new WeakSet<RawPart>();
+
+/**
+ * Where hair goes among the head's parts, following how the designer layered it:
+ * hair hanging at the back is first (the renderer draws it behind the body), except in the side view,
+ * where it is drawn over the head just after it; short hair in the ¾ and side views is also drawn
+ * just after the head, behind the ear and face; everything else is drawn on top.
+ */
+function placeHair(art: RawArt, p: RawPart, view: string): boolean {
+  const h = hairOf(p.id);
+  if (!h) return false;
+  const behindFace = view !== 'front' && h.style.startsWith('short_');
+  if (isBackHair(p.id) && view !== 'side') {
+    let i = 0;
+    while (i < art.parts.length && placedFirst.has(art.parts[i]!)) i++;
+    placedFirst.add(p);
+    art.parts.splice(i, 0, p);
+    return true;
+  }
+  const head = art.parts.findIndex((q) => q.id === 'head');
+  if ((isBackHair(p.id) || behindFace) && head >= 0) {
+    let i = head + 1;
+    while (i < art.parts.length && placedAfterHead.has(art.parts[i]!)) i++;
+    placedAfterHead.add(p);
+    art.parts.splice(i, 0, p);
+    return true;
+  }
+  return false;
+}
+
 /** Append add-on parts after the main file's parts (so they draw on top within their joint). */
-function withAddons(art: RawArt, addons: SourceFile[]): RawArt {
-  for (const f of addons) {
+function withAddons(art: RawArt, addons: { file: SourceFile; shift?: readonly [number, number] }[], view: string): RawArt {
+  for (const { file: f, shift } of addons) {
     const extra = parseInkscapeSvg(f.xml, f.name);
     for (const p of extra.parts) {
+      if (shift) p.subpaths = p.subpaths.map((sp) => ({ closed: sp.closed, pts: sp.pts.map((v, i) => v + shift[i % 2]!) }));
+      if (placeHair(art, p, view)) continue;
       // Leg variant art (and its clothes) goes in as a block where that leg is drawn, so it keeps the
       // leg's place among the body, shirt and arms; other add-ons draw on top within their joint.
       const leg = p.id.includes('@') ? /(?:^|_)(leg_[LR])_/.exec(p.id)?.[1] : undefined;
@@ -160,17 +197,73 @@ function withAddons(art: RawArt, addons: SourceFile[]): RawArt {
   return art;
 }
 
+/** Where the head is: the mean of its outline points. */
+function headCentre(art: RawArt): [number, number] | null {
+  const head = art.parts.find((p) => p.id === 'head');
+  if (!head) return null;
+  let x = 0;
+  let y = 0;
+  let n = 0;
+  for (const sp of head.subpaths) {
+    for (let i = 0; i + 1 < sp.pts.length; i += 2) {
+      x += sp.pts[i]!;
+      y += sp.pts[i + 1]!;
+      n++;
+    }
+  }
+  return n ? [x / n, y / n] : null;
+}
+
+/** The plain face and hair parts that styled hair and expressions replace. */
+const PLAIN_FACE = /^(mouth|eyebrow(_[LR])?|eye(_[LR])?_(fill|iris|line))$/;
+
+/** Once the art has styled hair or expressions, the plain parts of the base art are not needed. */
+function dropReplaced(art: RawArt, which: string, findings: Finding[]): void {
+  const styledFace = art.parts.some((p) => expressionOf(p.id));
+  const styledHair = art.parts.some((p) => hairOf(p.id));
+  const gone = art.parts.filter((p) => (styledFace && PLAIN_FACE.test(p.id)) || (styledHair && p.id === 'hair'));
+  if (!gone.length) return;
+  art.parts = art.parts.filter((p) => !gone.includes(p));
+  findings.push({ severity: 'info', message: `${which}: plain ${gone.map((p) => p.id).join(', ')} replaced by the hair and expression styles` });
+}
+
 export function compileKit(input: CompileInput): CompileResult {
   const findings: Finding[] = [];
   let low: RawArt;
   let high: RawArt;
+  const view = input.view ?? 'front';
   try {
-    low = withAddons(parseInkscapeSvg(input.low.xml, input.low.name), input.addons?.low ?? []);
-    high = withAddons(parseInkscapeSvg(input.high.xml, input.high.name), input.addons?.high ?? []);
+    const baseLow = parseInkscapeSvg(input.low.xml, input.low.name);
+    const baseHigh = parseInkscapeSvg(input.high.xml, input.high.name);
+    // Low-only add-ons (hair, expressions) are used for both extremes, moved by however far the head
+    // moves between them (a broader body sits the head a little differently).
+    const lowAddons = input.addons?.low ?? [];
+    const highAddons = input.addons?.high ?? [];
+    const hasHigh = (f: SourceFile) => highAddons.some((h) => h.name === f.name.replace(/\.low\.svg$/, '.high.svg'));
+    const derived = lowAddons.filter((f) => !hasHigh(f));
+    const a = headCentre(baseLow);
+    const b = headCentre(baseHigh);
+    const shift: [number, number] = a && b ? [b[0] - a[0], b[1] - a[1]] : [0, 0];
+    if (derived.length && !(a && b)) findings.push({ severity: 'warning', message: 'no head part found, so low-only add-ons are not moved between the body sizes' });
+    // The high add-ons follow the low ones' order, so both extremes stack their parts the same way.
+    const highInOrder = lowAddons.map((f) => {
+      const h = highAddons.find((x) => x.name === f.name.replace(/\.low\.svg$/, '.high.svg'));
+      return h ? { file: h } : { file: f, shift };
+    });
+    const highOnly = highAddons.filter((h) => !lowAddons.some((f) => h.name === f.name.replace(/\.low\.svg$/, '.high.svg')));
+    low = withAddons(baseLow, lowAddons.map((file) => ({ file })), view);
+    high = withAddons(baseHigh, [...highInOrder, ...highOnly.map((file) => ({ file }))], view);
+    for (const [art, which] of [[low, 'low'], [high, 'high']] as const) dropReplaced(art, which, findings);
   } catch (e) {
     return { kit: null, findings: [{ severity: 'error', message: (e as Error).message }] };
   }
-  for (const pr of [...low.problems, ...high.problems]) findings.push(pr);
+  // A low-only add-on is read for both extremes, so its notes would appear twice.
+  const seenNotes = new Set<string>();
+  for (const pr of [...low.problems, ...high.problems]) {
+    if (seenNotes.has(pr.message)) continue;
+    seenNotes.add(pr.message);
+    findings.push(pr);
+  }
   if ((input.view ?? 'front') === 'front') {
     for (const [art, which] of [[low, 'low'], [high, 'high']] as const) {
       mirrorSleeves(art, which, findings);

@@ -36,6 +36,17 @@ describe('HTTP API', () => {
     expect(svg).toContain('data-pose="holding"');
   });
 
+  it('picks the hair style and expression from query parameters', async () => {
+    const svg = await (await fetch(`${base}/render.svg?hairStyle=long_textured&expression=surprised&hair=aa0000`)).text();
+    expect(svg).toContain('id="hair_long_textured_back"');
+    expect(svg).toContain('id="expression_surprised_mouth_fill"');
+    expect(svg).toContain('fill="#aa0000"');
+    expect(svg).not.toContain('id="hair_short_straight_front"');
+    const bald = await (await fetch(`${base}/render.svg?hairStyle=none`)).text();
+    expect(bald).not.toMatch(/id="hair_/);
+    expect((await fetch(`${base}/render.svg?hairStyle=mohawk`)).status).toBe(400);
+  });
+
   it('explains what is wrong with a bad request', async () => {
     const res = await fetch(`${base}/render`, { method: 'POST', body: JSON.stringify({ avatar: { body: 4 } }) });
     expect(res.status).toBe(400);
@@ -62,5 +73,11 @@ describe('HTTP API', () => {
   it('lists presets for UIs', async () => {
     const body = (await (await fetch(`${base}/presets`)).json()) as { presets: { id: string }[] };
     expect(body.presets.map((p) => p.id)).toContain('sitting-utensil');
+  });
+
+  it('lists the hair styles and expressions', async () => {
+    const body = (await (await fetch(`${base}/presets`)).json()) as { hairStyles: string[]; expressions: string[] };
+    expect(body.hairStyles).toEqual(expect.arrayContaining(['none', 'short_straight', 'long_textured']));
+    expect(body.expressions).toEqual(expect.arrayContaining(['content', 'angry']));
   });
 });

@@ -20,6 +20,8 @@ import {
   renderSvg,
   getKit,
   kitGarments,
+  kitExpressions,
+  kitHairStyles,
   type Framing,
   type RenderRequest,
 } from '@openaac-avatar/core';
@@ -42,6 +44,8 @@ render options
   --body <0..1>         Body size, 0 = slim, 1 = broad (default 0.5)
   --skin, --hair, --iris, --eye-white, --top, --bottom, --ink <#hex>
   --wear <slot=style>   Garment, repeatable: --wear top=tight_long --wear bottom=loose_short
+  --hair-style <style>  Hair style, or none (see "presets" for the list)
+  --expression <name>   Facial expression (see "presets" for the list)
   --line-weight <n>     Multiply all line weights (default 1)
   --framing <f>         ${FRAMINGS.join(' | ')} (default full)
   --size <px>           Output width/height (default 1000)
@@ -86,6 +90,8 @@ function cmdRender(argv: string[]): void {
       view: { type: 'string' },
       preset: { type: 'string' },
       wear: { type: 'string', multiple: true },
+      'hair-style': { type: 'string' },
+      expression: { type: 'string' },
       adjust: { type: 'string', multiple: true },
       body: { type: 'string' },
       ...Object.fromEntries(Object.keys(COLOR_FLAGS).map((k) => [k, { type: 'string' as const }])),
@@ -125,6 +131,8 @@ function cmdRender(argv: string[]): void {
       lineWeight: numberFlag(v['line-weight'] as string | undefined, 'line-weight'),
       colors: Object.keys(colors).length ? colors : undefined,
       clothing: Object.keys(clothing).length ? clothing : undefined,
+      hair: v['hair-style'] as string | undefined,
+      expression: v.expression as string | undefined,
     },
     options: {
       framing: v.framing as Framing | undefined,
@@ -203,6 +211,9 @@ function cmdPresets(): void {
   }
   const g = kitGarments(getKit('front'));
   console.log(`\nGarments (--wear): top = ${g.top.join(', ')}; bottom = ${g.bottom.join(', ')}`);
+  const front = getKit('front');
+  console.log(`Hair (--hair-style): none, ${kitHairStyles(front).join(', ')}`);
+  console.log(`Expressions (--expression): ${kitExpressions(front).join(', ')}`);
 }
 
 function cmdJoints(): void {
