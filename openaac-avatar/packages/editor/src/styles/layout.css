@@ -247,6 +247,41 @@
   background: var(--coral);
 }
 
+/* Enlarge button: only on small screens, where the preview is pinned. */
+.expand-btn {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink);
+  background: var(--card-solid);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+}
+.expand-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.expand-btn .icon-collapse,
+.expand-btn[aria-expanded='true'] .icon-expand {
+  display: none;
+}
+.expand-btn[aria-expanded='true'] .icon-collapse {
+  display: block;
+}
+
 .controls {
   display: flex;
   flex-direction: column;
@@ -259,11 +294,40 @@
     grid-template-columns: 1fr;
     padding: 10px 16px 32px;
   }
+  /* Keep the preview pinned to the top while the options scroll beneath it. */
+  html {
+    scroll-padding-top: calc(32vh + 32px);
+    scroll-padding-top: calc(32dvh + 32px);
+  }
   .stage {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin: 0 -16px;
+  }
+  .stage-card {
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+    border-radius: 0 0 24px 24px;
+    background: var(--card-solid);
+    backdrop-filter: none;
   }
   .preview-wrap {
-    width: 100%;
+    width: min(100%, 32vh);
+    width: min(100%, 32dvh);
+    min-width: 0;
+    border-radius: 16px;
+  }
+  .thumbs,
+  .doodle {
+    display: none;
+  }
+  .expand-btn {
+    display: grid;
+  }
+  /* Enlarged: the preview takes the full screen height and covers the options. */
+  .stage[data-expanded] .preview-wrap {
+    width: min(100%, calc(100vh - 24px - env(safe-area-inset-top, 0px)));
+    width: min(100%, calc(100dvh - 24px - env(safe-area-inset-top, 0px)));
   }
   .top {
     padding: 16px 16px 4px;
@@ -276,6 +340,32 @@
   }
   .doodle-dash-l,
   .doodle-dash-r {
+    display: none;
+  }
+}
+/* Short landscape screens: preview on the left, options on the right. */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+  html {
+    scroll-padding-top: 12px;
+  }
+  .layout {
+    grid-template-columns: minmax(160px, 40%) minmax(0, 1fr);
+  }
+  .stage {
+    top: 12px;
+    margin: 0;
+  }
+  .stage-card {
+    padding: 8px;
+    border-radius: 24px;
+    background: var(--card);
+    backdrop-filter: blur(6px);
+  }
+  .preview-wrap {
+    width: min(100%, calc(100vh - 56px));
+    width: min(100%, calc(100dvh - 56px));
+  }
+  .expand-btn {
     display: none;
   }
 }

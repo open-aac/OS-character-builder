@@ -29,6 +29,18 @@ const openRequestJson = setupRequestDialog(store);
 mountPreview(store);
 mountControls(store, { openExport: () => void openExport(), openRequestJson });
 
+/* Small screens: the preview is pinned at the top; this button enlarges it. */
+const expandButton = $('#preview-expand');
+function setPreviewExpanded(expanded: boolean): void {
+  document.querySelector('.stage')?.toggleAttribute('data-expanded', expanded);
+  expandButton.setAttribute('aria-expanded', String(expanded));
+  expandButton.setAttribute('aria-label', expanded ? 'Shrink preview' : 'Enlarge preview');
+}
+expandButton.addEventListener('click', () => setPreviewExpanded(expandButton.getAttribute('aria-expanded') !== 'true'));
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') setPreviewExpanded(false);
+});
+
 /* Header actions */
 const toast = $('#toast');
 let toastTimer = 0;
