@@ -95,6 +95,9 @@ export interface PoseView {
   limb: string;
 }
 
+/** The tabs of the Look panel. */
+export type LookTab = 'face' | 'clothing' | 'colours';
+
 export class Store {
   #state: EditorState;
   #listeners: Record<Event, Set<() => void>> = { change: new Set(), rebuild: new Set() };
@@ -104,6 +107,12 @@ export class Store {
    * rather than in `EditorState` (which maps 1:1 onto `RenderRequest` and is round-tripped/saved).
    */
   poseView: PoseView | null = null;
+
+  /** The Look panel's selected tab. UI-only, like `poseView`. */
+  lookTab: LookTab = 'clothing';
+
+  /** The large preview is zoomed in on the head (Hair/Face tab open). It does not change the export framing. */
+  headZoom = false;
 
   constructor(state: EditorState) {
     this.#state = state;
@@ -131,6 +140,13 @@ export class Store {
   setPoseView(view: PoseView | null): void {
     this.poseView = view;
     this.#emit('rebuild');
+  }
+
+  /** Zoom the preview in on the head, or back out; redraws the preview only when this changes. */
+  setHeadZoom(on: boolean): void {
+    if (on === this.headZoom) return;
+    this.headZoom = on;
+    this.#emit('change');
   }
 
   on(event: Event, fn: () => void): void {

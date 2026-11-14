@@ -47,6 +47,13 @@ describe('HTTP API', () => {
     expect((await fetch(`${base}/render.svg?hairStyle=mohawk`)).status).toBe(400);
   });
 
+  it('accepts an eyebrow query colour separate from hair', async () => {
+    const svg = await (await fetch(`${base}/render.svg?hair=00ff00&eyebrow=ff00ff`)).text();
+    expect(svg).toMatch(/id="expression_content_eyebrow_[LR]"[^>]*fill="#ff00ff"/);
+    expect(svg).toContain('id="hair_short_straight_front"');
+    expect(svg).toContain('fill="#00ff00"');
+  });
+
   it('explains what is wrong with a bad request', async () => {
     const res = await fetch(`${base}/render`, { method: 'POST', body: JSON.stringify({ avatar: { body: 4 } }) });
     expect(res.status).toBe(400);

@@ -42,7 +42,7 @@ render options
   --preset <id>         Template pose (default: standing)
   --adjust <joint=deg>  Adjust a joint from the template; repeatable, e.g. --adjust elbow_R=15
   --body <0..1>         Body size, 0 = slim, 1 = broad (default 0.5)
-  --skin, --hair, --iris, --eye-white, --top, --bottom, --ink <#hex>
+  --skin, --hair, --eyebrow, --iris, --eye-white, --top, --bottom, --ink <#hex>
   --wear <slot=style>   Garment, repeatable: --wear top=tight_long --wear bottom=loose_short
   --hair-style <style>  Hair style, or none (see "presets" for the list)
   --expression <name>   Facial expression (see "presets" for the list)
@@ -64,6 +64,7 @@ batch options
 const COLOR_FLAGS: Record<string, (typeof COLOR_ROLES)[number]> = {
   skin: 'skin',
   hair: 'hair',
+  eyebrow: 'eyebrow',
   iris: 'iris',
   'eye-white': 'eyeWhite',
   top: 'top',

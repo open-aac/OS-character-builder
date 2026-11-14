@@ -23,6 +23,7 @@ export const JOINT_NAMES: Readonly<Record<string, string>> = {
 export const COLOR_LABELS: Readonly<Record<ColorRole, string>> = {
   skin: 'Skin',
   hair: 'Hair',
+  eyebrow: 'Eyebrows',
   iris: 'Eyes',
   eyeWhite: 'Eye whites',
   top: 'Top',

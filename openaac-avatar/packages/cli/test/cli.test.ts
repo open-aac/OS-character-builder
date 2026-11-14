@@ -27,6 +27,14 @@ describe('CLI', () => {
     expect(run('presets').stdout).toMatch(/Hair \(--hair-style\): none, .*long_textured[\s\S]*Expressions \(--expression\): .*angry/);
   });
 
+  it('accepts an eyebrow colour separate from hair', () => {
+    const r = run('render', '--hair', '#00ff00', '--eyebrow', '#ff00ff');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/id="expression_content_eyebrow_[LR]"[^>]*fill="#ff00ff"/);
+    expect(r.stdout).toContain('id="hair_short_straight_front"');
+    expect(r.stdout).toContain('fill="#00ff00"');
+  });
+
   it('reports every input problem and exits non-zero', () => {
     const r = run('render', '--preset', 'flying', '--body', '3');
     expect(r.status).toBe(1);

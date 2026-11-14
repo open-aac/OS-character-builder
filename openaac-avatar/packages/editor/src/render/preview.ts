@@ -20,6 +20,9 @@ const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
 
 const targetPose = (s: EditorState): ResolvedPose => templatePose(s);
 
+/** What the large preview shows: the chosen framing, or the head close up while the Hair/Face tab is open. */
+const previewState = (s: EditorState, headZoom: boolean): EditorState => (headZoom ? { ...s, framing: 'head' } : s);
+
 /** Idle motion layered on the still pose, per template. */
 function idle(pose: ResolvedPose, ms: number): ResolvedPose {
   if (pose.preset !== 'waving') return pose;
@@ -66,7 +69,7 @@ export function mountPreview(store: Store): void {
     const animate = !reducedMotion();
     shown = pose;
     preview.parentElement?.setAttribute('data-airborne', String(target.airborne));
-    preview.innerHTML = renderSymbol(s, { size: 600, idPrefix: 'p', pose: animate ? idle(pose, now) : pose });
+    preview.innerHTML = renderSymbol(previewState(s, store.headZoom), { size: 600, idPrefix: 'p', pose: animate ? idle(pose, now) : pose });
     loop = from || (animate && target.preset === 'waving') ? requestAnimationFrame(frame) : 0;
   };
 
@@ -74,7 +77,7 @@ export function mountPreview(store: Store): void {
   const drawStill = () => {
     const s = store.state;
     for (const t of thumbs) t.el.innerHTML = renderSymbol(s, { size: t.size, idPrefix: t.idPrefix });
-    preview.parentElement?.setAttribute('data-framing', s.framing);
+    preview.parentElement?.setAttribute('data-framing', previewState(s, store.headZoom).framing);
 
     // Pose buttons show the figure with the current body and colours. Redrawn once a slider
     // settles rather than on every step: nine extra figures per step would make dragging stutter.

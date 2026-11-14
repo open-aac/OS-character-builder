@@ -19,7 +19,7 @@ export interface Subpath {
 }
 
 /** Colour roles a fill can be recoloured through. `fixed` keeps the source colour. */
-export const FILL_ROLES = ['skin', 'hair', 'iris', 'eyeWhite', 'top', 'bottom', 'ink', 'fixed'] as const;
+export const FILL_ROLES = ['skin', 'hair', 'eyebrow', 'iris', 'eyeWhite', 'top', 'bottom', 'ink', 'fixed'] as const;
 export type FillRole = (typeof FILL_ROLES)[number];
 
 /** Recolourable roles exposed to users (`fixed` is not recolourable). */

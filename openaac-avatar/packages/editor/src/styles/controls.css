@@ -438,6 +438,40 @@ input[type='range']:disabled {
   transform: scale(1.18);
 }
 
+/* Look panel tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 4px;
+  border-radius: 16px;
+  background: #f1f4fb;
+}
+.tab {
+  flex: 1 1 0;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.tab:hover {
+  background: #fff;
+  color: var(--ink);
+}
+.tab[aria-selected='true'] {
+  background: var(--grad);
+  box-shadow: var(--shadow-btn);
+  color: #fff;
+}
+
 /* Export panel inputs */
 .inline {
   display: inline-flex;

@@ -10,6 +10,7 @@ import type { AvatarInput, ColorRole, Framing, GarmentSlot, PoseInput, RenderOpt
 export const DEFAULT_COLORS: Readonly<Record<ColorRole, string>> = {
   skin: '#d59965',
   hair: '#2b190d',
+  eyebrow: '#2b190d',
   iris: '#482e11',
   eyeWhite: '#ffffff',
   top: '#ffffff',

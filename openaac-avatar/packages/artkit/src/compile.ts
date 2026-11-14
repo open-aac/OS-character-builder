@@ -44,6 +44,8 @@ export const PLACEHOLDER_COLOURS: Record<string, FillRole> = {
   '#000000': 'ink',
 };
 
+const isEyebrow = (id: string) => /(^|_)eyebrow(_|$)/.test(id);
+
 /** Style guide line weights at a 1000px canvas. */
 export const STROKE_WIDTHS: Record<StrokeRole, number> = { body: 10, face: 5 };
 
@@ -62,6 +64,7 @@ const GARMENT_ROLE: [RegExp, FillRole][] = [
 
 function fillRole(p: RawPart, findings: Finding[]): FillRole | null {
   if (!p.fill) return null;
+  if (p.fill === '#2b190d' && isEyebrow(p.id)) return 'eyebrow';
   if (p.fill !== '#000000') for (const [re, role] of GARMENT_ROLE) if (re.test(p.id)) return role;
   if (p.fill === '#ffffff') return whiteRole(p.id);
   const role = PLACEHOLDER_COLOURS[p.fill];

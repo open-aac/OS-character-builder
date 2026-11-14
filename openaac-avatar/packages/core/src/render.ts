@@ -288,8 +288,8 @@ export function poseFigure(kit: ArtKit, req: NormalizedRequest, poseOverride?: R
 
 const FRAMING_UNITS: Record<string, readonly UnitId[] | null> = {
   full: null,
-  upper: ['torso', 'head', 'arm_L', 'arm_R'],
-  head: ['head'],
+  upper: ['hairBack', 'torso', 'head', 'arm_L', 'arm_R'],
+  head: ['hairBack', 'head'],
 };
 
 /** The square area to show, in kit units. */
@@ -325,9 +325,13 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 const r2 = (n: number) => String(Math.round(n * 100) / 100);
 
+const isEyebrow = (id: string) => /(^|_)eyebrow(_|$)/.test(id);
+
 function fillFor(p: PosedPart, colors: Record<ColorRole, string>): string {
   if (!p.fillRole) return 'none';
   if (p.fillRole === 'fixed') return p.fill ?? 'none';
+  // Backward compatibility: existing kit JSONs tag eyebrows as hair.
+  if (p.fillRole === 'hair' && isEyebrow(p.id)) return colors.eyebrow;
   return colors[p.fillRole];
 }
 

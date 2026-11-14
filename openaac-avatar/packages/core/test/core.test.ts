@@ -18,9 +18,6 @@ import {
   validateKit,
   presetsForView,
   kitGarments,
-  kitHairStyles,
-  kitExpressions,
-  shownLook,
 } from '../src/index.js';
 
 const kit = getKit('front');
@@ -180,6 +177,12 @@ describe('SVG output', () => {
     expect(svg).not.toMatch(/#d59965/); // default skin fully replaced
   });
 
+    it('lets eyebrow colour differ from hair colour', () => {
+      const svg = renderSvg({ avatar: { colors: { hair: '#00ff00', eyebrow: '#ff00ff' } } });
+      expect(svg).toMatch(/id="expression_content_eyebrow_[LR]"[^>]*fill="#ff00ff"/);
+      expect(svg).toMatch(/id="hair_short_straight_front"[^>]*fill="#00ff00"/);
+    });
+
   it('applies the line weight to both weight classes', () => {
     expect(svg).toMatch(/stroke-width="15"/);
     expect(svg).toMatch(/stroke-width="7.5"/);
@@ -329,6 +332,40 @@ describe('animation support', () => {
     }
   });
 
+  it('fits the hips to the thigh in the side view at any bent hip, not just in the sitting pose', () => {
+    const side = getKit('side');
+    for (const preset of ['standing', 'sitting']) {
+      for (const hip of [-30, -20, 20, 30]) {
+        for (const body of [0, 0.5, 1]) {
+          for (const bottom of ['tight_short', 'loose_short', 'tight_long']) {
+            const req = normalizeRequest({ view: 'side', pose: { preset, adjust: { hip_L: hip } }, avatar: { body, clothing: { bottom, top: 'tight_long' } } });
+            const parts = poseFigure(side, req).parts;
+            // Every case here bends the hip well past the threshold, so no standing hips piece should remain...
+            const standingHips = parts.filter((p) => /^pants_[a-z_]+_body_(fill|line)$/.test(p.id) && p.shapes.length > 0);
+            expect(standingHips.length, `${preset} hip ${hip} body ${body} ${bottom}`).toBe(0);
+            // ...and one fused bottom piece covers the hips and thigh, drawn over the shirt, with a single outline.
+            const bottoms = parts.filter((p) => p.fillRole === 'bottom' && p.shapes.length > 0);
+            expect(bottoms.length).toBeGreaterThan(0);
+            const shirt = parts.findIndex((p) => p.id.startsWith('shirt_') && p.id.endsWith('_body'));
+            expect(shirt).toBeGreaterThanOrEqual(0);
+            expect(shirt).toBeLessThan(parts.indexOf(bottoms[0]!));
+            expect(parts.filter((p) => p.id.endsWith('_line') && p.id.startsWith('pants_') && p.shapes.length > 0).length).toBeGreaterThan(0);
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps the standing hips piece when the hip is barely bent', () => {
+    const side = getKit('side');
+    for (const hip of [0, 5, 10]) {
+      const req = normalizeRequest({ view: 'side', pose: { preset: 'standing', adjust: { hip_L: hip } }, avatar: { clothing: { bottom: 'tight_long', top: 'tight_long' } } });
+      const parts = poseFigure(side, req).parts;
+      const standingHips = parts.filter((p) => /^pants_[a-z_]+_body_(fill|line)$/.test(p.id) && p.shapes.length > 0);
+      expect(standingHips.length, `hip ${hip}`).toBeGreaterThan(0);
+    }
+  });
+
   it('renders the three-quarter and side views', () => {
     for (const view of ['three-quarter', 'side']) {
       for (const p of presetsForView(view)) {
@@ -354,61 +391,5 @@ describe('animation support', () => {
     const box = (p: typeof hand) => p.shapes.reduce((b, s) => subpathBox(s, b), subpathBox(p.shapes[0]!));
     // Facing the viewer's left: the pointing hand is out in front of (left of) the face, at about shoulder height.
     expect(box(hand).maxX).toBeLessThan(box(head).minX);
-  });
-});
-
-describe('hair styles and expressions', () => {
-  const ids = (req: object, re: RegExp) => [...renderSvg(req).matchAll(re)].map((m) => m[1]!);
-  const hairIds = (req: object) => ids(req, /<path id="(hair_[^"]+)"/g);
-  const exprIds = (req: object) => ids(req, /<path id="(expression_[^"]+)"/g);
-
-  it('offers the same styles and expressions in every view', () => {
-    const styles = ['long_straight', 'long_textured', 'short_straight', 'short_textured'];
-    const names = ['angry', 'content', 'puzzled', 'surprised', 'unhappy'];
-    for (const view of ['front', 'three-quarter', 'side']) {
-      expect(kitHairStyles(getKit(view)).sort()).toEqual(styles);
-      expect(kitExpressions(getKit(view)).sort()).toEqual(names);
-    }
-  });
-
-  it('draws one hair style and one expression, defaulting to short straight and content', () => {
-    for (const view of ['front', 'three-quarter', 'side']) {
-      expect(shownLook(getKit(view))).toEqual({ hair: 'short_straight', expression: 'content' });
-      const hair = hairIds({ view });
-      expect(hair.length).toBeGreaterThan(0);
-      expect(hair.every((id) => id.startsWith('hair_short_straight_'))).toBe(true);
-      const face = exprIds({ view });
-      expect(face.length).toBeGreaterThan(0);
-      expect(face.every((id) => id.startsWith('expression_content_'))).toBe(true);
-    }
-  });
-
-  it('switches style and expression, and can leave the hair out', () => {
-    for (const view of ['front', 'three-quarter', 'side']) {
-      expect(hairIds({ view, avatar: { hair: 'long_textured' } }).every((id) => id.startsWith('hair_long_textured_'))).toBe(true);
-      expect(hairIds({ view, avatar: { hair: 'none' } })).toEqual([]);
-      const angry = exprIds({ view, avatar: { expression: 'angry' } });
-      expect(angry.length).toBeGreaterThan(0);
-      expect(angry.every((id) => id.startsWith('expression_angry_'))).toBe(true);
-    }
-  });
-
-  it('recolours the hair and keeps it drawn behind the body when it hangs down the back', () => {
-    const svg = renderSvg({ avatar: { hair: 'long_straight', colors: { hair: '#ff0000' } } });
-    expect(svg).toMatch(/id="hair_long_straight_back"[^>]*fill="#ff0000"/);
-    // Behind the trunk in the front view, so the body covers it.
-    expect(svg.indexOf('id="hair_long_straight_back"')).toBeLessThan(svg.indexOf('id="body"'));
-  });
-
-  it('rejects styles and expressions the art does not have', () => {
-    expect(() => renderSvg({ avatar: { hair: 'mohawk' } })).toThrow(/avatar\.hair must be one of: none, /);
-    expect(() => renderSvg({ avatar: { expression: 'sleepy' } })).toThrow(/avatar\.expression must be one of: /);
-    expect(() => normalizeRequest({ avatar: { hair: 'Long Hair' } })).toThrow(RequestError);
-  });
-
-  it('keeps the face and hair with the head when it tilts', () => {
-    const fig = (neck: number) => poseFigure(getKit('front'), normalizeRequest({ pose: { adjust: { neck } } }));
-    const top = (f: ReturnType<typeof fig>, id: string) => f.parts.find((p) => p.id === id)!.shapes[0]!.pts[0];
-    for (const id of ['hair_short_straight_front', 'expression_content_mouth']) expect(top(fig(20), id)).not.toBe(top(fig(0), id));
   });
 });

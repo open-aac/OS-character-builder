@@ -5,7 +5,6 @@ import { adjustFields } from '../src/ui/panels/adjust-panel';
 import { bodyPanel } from '../src/ui/panels/body-panel';
 import { clothingFields } from '../src/ui/panels/clothing-panel';
 import { coloursFields } from '../src/ui/panels/colours-panel';
-import { expressionFields, hairFields } from '../src/ui/panels/face-panel';
 import { exportPanel } from '../src/ui/panels/export-panel';
 import { linesFields } from '../src/ui/panels/lines-panel';
 import { lookPanel } from '../src/ui/panels/look-panel';
@@ -183,34 +182,13 @@ describe('clothingFields', () => {
   });
 });
 
-describe('hairFields and expressionFields', () => {
-  it('offer no hair and every style from the art, with the current one selected', () => {
-    const el = fieldContainer(...hairFields(new Store(initialState())));
-    const labels = [...chipsIn(el, 'Hair').querySelectorAll('.chip-label')].map((c) => c.textContent);
-    expect(labels).toEqual(['No hair', 'Short, straight', 'Short, curly', 'Long, straight', 'Long, curly']);
-    expect(chipsIn(el, 'Hair').querySelector('.chip.on .chip-label')?.textContent).toBe('Short, straight');
-  });
-
-  it('picking a style or expression updates the state and rebuilds', () => {
-    const store = new Store(initialState());
-    const onRebuild = vi.fn();
-    store.on('rebuild', onRebuild);
-    chipFor(chipsIn(fieldContainer(...hairFields(store)), 'Hair'), 'No hair').click();
-    expect(store.state.hair).toBe('none');
-    const face = chipsIn(fieldContainer(...expressionFields(store)), 'Expression');
-    expect([...face.querySelectorAll('.chip-label')].map((c) => c.textContent)).toEqual(['Content', 'Surprised', 'Unhappy', 'Puzzled', 'Angry']);
-    chipFor(face, 'Surprised').click();
-    expect(store.state.expression).toBe('surprised');
-    expect(onRebuild).toHaveBeenCalledTimes(2);
-  });
-});
-
 describe('coloursFields', () => {
   it('shows a colour input per role except ink', () => {
     const store = new Store(initialState());
     const el = fieldContainer(...coloursFields(store));
     expect(el.querySelector('#colour-ink')).toBeNull();
     expect(el.querySelector('#colour-skin')).toBeTruthy();
+    expect(el.querySelector('#colour-eyebrow')).toBeTruthy();
   });
 
   it('typing in the colour input updates that role', () => {
@@ -225,12 +203,61 @@ describe('coloursFields', () => {
   it('clicking a swatch sets the colour and the picker value', () => {
     const store = new Store(initialState());
     const el = fieldContainer(...coloursFields(store));
-    const row = el.querySelector('#colour-hair')!.closest('.color-row')!;
+    const row = el.querySelector('#colour-skin')!.closest('.color-row')!;
     const swatch = row.querySelector<HTMLButtonElement>('.swatch')!;
     const expected = swatch.title;
     swatch.click();
-    expect(store.state.colors.hair).toBe(expected);
-    expect(row.querySelector<HTMLInputElement>('#colour-hair')!.value.toLowerCase()).toBe(expected.toLowerCase());
+    expect(store.state.colors.skin).toBe(expected);
+    expect(row.querySelector<HTMLInputElement>('#colour-skin')!.value.toLowerCase()).toBe(expected.toLowerCase());
+  });
+
+  it('does not offer eye whites or outlines', () => {
+    const el = fieldContainer(...coloursFields(new Store(initialState())));
+    expect(el.querySelector('#colour-eyeWhite')).toBeNull();
+    expect(el.textContent).not.toContain('Eye whites');
+  });
+
+  it('hair uses the same colour input and swatches as the other colours', () => {
+    const store = new Store(initialState());
+    const el = fieldContainer(...coloursFields(store));
+    const input = el.querySelector<HTMLInputElement>('#colour-hair')!;
+    expect(input.type).toBe('color');
+    input.value = '#12ab9c';
+    input.dispatchEvent(new Event('input'));
+    expect(store.state.colors.hair).toBe('#12ab9c');
+    const swatch = input.closest('.color-row')!.querySelector<HTMLButtonElement>('.swatch')!;
+    swatch.click();
+    expect(input.value.toLowerCase()).toBe(swatch.title.toLowerCase());
+  });
+
+  it('zooms to the head for hair/eyebrow/eyes colours, and returns to default for other colour roles', () => {
+    const store = new Store(initialState());
+    const el = fieldContainer(...coloursFields(store));
+
+    const hair = el.querySelector<HTMLInputElement>('#colour-hair')!;
+    hair.value = '#123456';
+    hair.dispatchEvent(new Event('input'));
+    expect(store.headZoom).toBe(true);
+
+    const eyebrow = el.querySelector<HTMLInputElement>('#colour-eyebrow')!;
+    eyebrow.value = '#654321';
+    eyebrow.dispatchEvent(new Event('input'));
+    expect(store.headZoom).toBe(true);
+
+    const eyes = el.querySelector<HTMLInputElement>('#colour-iris')!;
+    eyes.value = '#336699';
+    eyes.dispatchEvent(new Event('input'));
+    expect(store.headZoom).toBe(true);
+
+    const skin = el.querySelector<HTMLInputElement>('#colour-skin')!;
+    skin.value = '#d59965';
+    skin.dispatchEvent(new Event('input'));
+    expect(store.headZoom).toBe(false);
+
+    const top = el.querySelector<HTMLInputElement>('#colour-top')!;
+    top.value = '#ffffff';
+    top.dispatchEvent(new Event('input'));
+    expect(store.headZoom).toBe(false);
   });
 
   it('reset colours restores the defaults and rebuilds', () => {
@@ -274,12 +301,10 @@ describe('adjustFields', () => {
 });
 
 describe('lookPanel', () => {
-  it('composes hair, expression, clothing, colours and line weight under one "Look" panel', () => {
+  it('composes clothing, colours and line weight under one "Look" panel', () => {
     const store = new Store(initialState());
     const el = lookPanel(store);
     expect(el.querySelector('.panel-title-text')?.textContent).toBe('Look');
-    expect(chipsIn(el, 'Hair')).toBeTruthy();
-    expect(chipsIn(el, 'Expression')).toBeTruthy();
     expect(chipsIn(el, 'Top')).toBeTruthy();
     expect(el.querySelector('#colour-skin')).toBeTruthy();
     expect(el.querySelector('input[type="range"]')).toBeTruthy();
@@ -288,6 +313,71 @@ describe('lookPanel', () => {
   it('is collapsed by default, like every panel except Pose', () => {
     const el = lookPanel(new Store(initialState()));
     expect(el.querySelector('.panel-header')!.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  const tab = (el: HTMLElement, id: string) => el.querySelector<HTMLButtonElement>(`#look-tab-${id}`)!;
+  const tabPanel = (el: HTMLElement, id: string) => el.querySelector<HTMLElement>(`#look-tabpanel-${id}`)!;
+
+  it('has Clothing, Hair/Face and Colours tabs, opening on Clothing', () => {
+    const el = lookPanel(new Store(initialState()));
+    expect([...el.querySelectorAll('[role="tab"]')].map((t) => t.textContent)).toEqual(['Clothing', 'Hair/Face', 'Colours']);
+    expect(tab(el, 'clothing').getAttribute('aria-selected')).toBe('true');
+    expect(tabPanel(el, 'face').hidden).toBe(true);
+    expect(tabPanel(el, 'clothing').hidden).toBe(false);
+    expect(tabPanel(el, 'colours').hidden).toBe(true);
+    expect(tabPanel(el, 'face').querySelector('[aria-label="Hair"]')).toBeTruthy();
+    expect(tabPanel(el, 'clothing').querySelector('[aria-label="Top"]')).toBeTruthy();
+    expect(tabPanel(el, 'colours').querySelector('#colour-skin')).toBeTruthy();
+  });
+
+  it('clicking a tab shows only that tab, and arrow keys move between tabs', () => {
+    const el = lookPanel(new Store(initialState()));
+    tab(el, 'colours').click();
+    expect(tab(el, 'colours').getAttribute('aria-selected')).toBe('true');
+    expect(tabPanel(el, 'colours').hidden).toBe(false);
+    expect(tabPanel(el, 'face').hidden).toBe(true);
+    tab(el, 'colours').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    expect(tabPanel(el, 'face').hidden).toBe(false);
+  });
+
+  it('zooms the preview in on the head while Hair/Face is open, and out for the other tabs', () => {
+    const store = new Store(initialState());
+    const el = lookPanel(store);
+    const header = el.querySelector<HTMLButtonElement>('.panel-header')!;
+    // Collapsed: no zoom, and Clothing is selected by default.
+    expect(store.headZoom).toBe(false);
+    header.click();
+    expect(store.headZoom).toBe(false);
+    tab(el, 'clothing').click();
+    expect(store.headZoom).toBe(false);
+    tab(el, 'face').click();
+    expect(store.headZoom).toBe(true);
+    tab(el, 'colours').click();
+    expect(store.headZoom).toBe(false);
+    tab(el, 'face').click();
+    header.click();
+    expect(store.headZoom).toBe(false);
+  });
+
+  it('keeps the tab and zoom when the panel is rebuilt', () => {
+    const store = new Store(initialState());
+    localStorage.setItem('openaac-avatar-editor-panels', JSON.stringify({ look: true }));
+    tab(lookPanel(store), 'face').click();
+    expect(store.headZoom).toBe(true);
+    const rebuilt = lookPanel(store);
+    expect(store.headZoom).toBe(true);
+    expect(tab(rebuilt, 'face').getAttribute('aria-selected')).toBe('true');
+    tab(rebuilt, 'clothing').click();
+    expect(tab(lookPanel(store), 'clothing').getAttribute('aria-selected')).toBe('true');
+    expect(store.headZoom).toBe(false);
+  });
+
+  it('zooming does not change the export framing', () => {
+    const store = new Store(initialState());
+    localStorage.setItem('openaac-avatar-editor-panels', JSON.stringify({ look: true }));
+    tab(lookPanel(store), 'face').click();
+    expect(store.headZoom).toBe(true);
+    expect(store.state.framing).toBe('full');
   });
 });
 

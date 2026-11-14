@@ -5,12 +5,18 @@ import { h } from '../../lib/dom';
 import type { Store } from '../../state/store';
 import { button } from '../components';
 
+/** Colours that are not offered: outlines stay black (art director's request) and eye whites stay white. */
+const HIDDEN_ROLES: readonly ColorRole[] = ['ink', 'eyeWhite'];
+const HEAD_ZOOM_ROLES: readonly ColorRole[] = ['hair', 'eyebrow', 'iris'];
+
 export function coloursFields(store: Store): Node[] {
-  const setColour = (role: ColorRole, value: string) => store.update({ colors: { ...store.state.colors, [role]: value } });
+  const setColour = (role: ColorRole, value: string) => {
+    store.update({ colors: { ...store.state.colors, [role]: value } });
+    store.setHeadZoom(HEAD_ZOOM_ROLES.includes(role));
+  };
   const list = h('div', { class: 'colors' });
 
-  // Outlines stay black: the outline colour option was removed at the art director's request.
-  for (const role of (Object.keys(COLOR_LABELS) as ColorRole[]).filter((r) => r !== 'ink')) {
+  for (const role of (Object.keys(COLOR_LABELS) as ColorRole[]).filter((r) => !HIDDEN_ROLES.includes(r))) {
     const label = COLOR_LABELS[role];
     const picker = h('input', { type: 'color', id: `colour-${role}`, value: store.state.colors[role], 'aria-label': `${label} colour` });
     picker.addEventListener('input', () => setColour(role, picker.value));
