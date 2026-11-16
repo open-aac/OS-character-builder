@@ -10,6 +10,8 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
+import { readFile, stat } from 'node:fs/promises';
+import { extname, join, resolve, sep } from 'node:path';
 import {
   COLOR_ROLES,
   DEFAULT_COLORS,
@@ -37,6 +39,45 @@ export interface AppOptions {
   maxBatch?: number;
   /** Optional HTTP Basic Auth guard for temporary private preview deployments. */
   basicAuth?: { username: string; password: string };
+  /** Directory of static files (the built editor) served for GET/HEAD requests that match no API route. */
+  staticDir?: string;
+}
+
+const MIME: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.json': 'application/json; charset=utf-8',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
+};
+
+/** Resolve a request path inside `root`, or null if it escapes it or does not exist as a file. */
+async function resolveStaticFile(root: string, pathname: string): Promise<string | null> {
+  let rel: string;
+  try {
+    rel = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+  if (rel.includes('\0')) return null;
+  const base = resolve(root);
+  let file = resolve(join(base, rel));
+  if (file !== base && !file.startsWith(base + sep)) return null;
+  try {
+    if ((await stat(file)).isDirectory()) file = join(file, 'index.html');
+    return (await stat(file)).isFile() ? file : null;
+  } catch {
+    return null;
+  }
 }
 
 function decodeBasicAuth(header: string | undefined): { username: string; password: string } | null {
@@ -241,8 +282,24 @@ export function createApp(opts: AppOptions = {}): Handler {
           });
           return json(res, 200, { results });
         }
-        default:
+        default: {
+          if (opts.staticDir && (req.method === 'GET' || req.method === 'HEAD')) {
+            const file = await resolveStaticFile(opts.staticDir, url.pathname);
+            if (file) {
+              const body = await readFile(file);
+              const ext = extname(file).toLowerCase();
+              res.writeHead(200, {
+                'Content-Type': MIME[ext] ?? 'application/octet-stream',
+                'Content-Length': body.length,
+                'X-Content-Type-Options': 'nosniff',
+                'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
+              });
+              res.end(req.method === 'HEAD' ? undefined : body);
+              return;
+            }
+          }
           throw new HttpError(404, `no route for ${route}`);
+        }
       }
     } catch (e) {
       if (e instanceof RequestError) return json(res, 400, { error: 'invalid request', problems: e.problems });

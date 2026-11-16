@@ -4,6 +4,8 @@
  *   PORT=8787 HOST=0.0.0.0 CORS_ORIGIN='*' pnpm serve
  */
 import { createServer } from 'node:http';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 
 const port = Number(process.env['PORT'] ?? 8787);
@@ -16,8 +18,12 @@ if ((previewUser && !previewPass) || (!previewUser && previewPass)) {
   console.warn('preview auth disabled: set both PREVIEW_USER and PREVIEW_PASS to enable basic auth');
 }
 
+// Serve the built editor (packages/editor/dist) if present, or from STATIC_DIR.
+const staticDir = process.env['STATIC_DIR'] ?? fileURLToPath(new URL('../../editor/dist', import.meta.url));
+
 const server = createServer(
   createApp({
+    staticDir: existsSync(staticDir) ? staticDir : undefined,
     corsOrigin: cors === undefined ? '*' : cors === '' ? null : cors,
     basicAuth: previewUser && previewPass ? { username: previewUser, password: previewPass } : undefined,
   }),

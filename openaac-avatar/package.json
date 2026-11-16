@@ -19,7 +19,7 @@
     "test": "pnpm -r test",
     "preview": "tsx --conditions=source scripts/preview.ts",
     "build:web": "pnpm --filter @openaac-avatar/editor build",
-    "heroku-postbuild": "pnpm --filter @openaac-avatar/core build && pnpm --filter @openaac-avatar/server build",
+    "heroku-postbuild": "pnpm --filter @openaac-avatar/core build && pnpm --filter @openaac-avatar/server build && pnpm --filter @openaac-avatar/editor build",
     "art:stand-ins": "tsx --conditions=source scripts/place-stand-ins.ts",
     "art:import": "tsx --conditions=source scripts/import-art.ts",
     "art:import-styles": "tsx --conditions=source scripts/import-styles.ts"
