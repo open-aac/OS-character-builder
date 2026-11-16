@@ -87,4 +87,27 @@ describe('HTTP API', () => {
     expect(body.hairStyles).toEqual(expect.arrayContaining(['none', 'short_straight', 'long_textured']));
     expect(body.expressions).toEqual(expect.arrayContaining(['content', 'angry']));
   });
+
+  it('supports optional basic auth for private preview', async () => {
+    const guarded = createServer(createApp({ basicAuth: { username: 'preview', password: 'secret' } }));
+    await new Promise<void>((r) => guarded.listen(0, '127.0.0.1', r));
+    const guardedBase = `http://127.0.0.1:${(guarded.address() as AddressInfo).port}`;
+    try {
+      const denied = await fetch(`${guardedBase}/presets`);
+      expect(denied.status).toBe(401);
+      expect(denied.headers.get('www-authenticate')).toContain('Basic');
+
+      const wrong = await fetch(`${guardedBase}/presets`, {
+        headers: { Authorization: `Basic ${Buffer.from('preview:nope').toString('base64')}` },
+      });
+      expect(wrong.status).toBe(401);
+
+      const ok = await fetch(`${guardedBase}/presets`, {
+        headers: { Authorization: `Basic ${Buffer.from('preview:secret').toString('base64')}` },
+      });
+      expect(ok.status).toBe(200);
+    } finally {
+      await new Promise<void>((r) => guarded.close(() => r()));
+    }
+  });
 });

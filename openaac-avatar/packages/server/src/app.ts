@@ -9,6 +9,7 @@
  *   GET  /health
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 import {
   COLOR_ROLES,
   DEFAULT_COLORS,
@@ -34,6 +35,34 @@ export interface AppOptions {
   maxBodyBytes?: number;
   /** Most requests accepted by /render/batch. Default 200. */
   maxBatch?: number;
+  /** Optional HTTP Basic Auth guard for temporary private preview deployments. */
+  basicAuth?: { username: string; password: string };
+}
+
+function decodeBasicAuth(header: string | undefined): { username: string; password: string } | null {
+  if (!header) return null;
+  const m = /^Basic\s+(.+)$/i.exec(header);
+  if (!m) return null;
+  let raw = '';
+  try {
+    raw = Buffer.from(m[1]!, 'base64').toString('utf8');
+  } catch {
+    return null;
+  }
+  const i = raw.indexOf(':');
+  if (i < 0) return null;
+  return { username: raw.slice(0, i), password: raw.slice(i + 1) };
+}
+
+function safeEq(a: string, b: string): boolean {
+  const aa = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return aa.length === bb.length && timingSafeEqual(aa, bb);
+}
+
+function isAuthorised(header: string | undefined, expected: { username: string; password: string }): boolean {
+  const got = decodeBasicAuth(header);
+  return !!got && safeEq(got.username, expected.username) && safeEq(got.password, expected.password);
 }
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => void;
@@ -142,6 +171,7 @@ export function createApp(opts: AppOptions = {}): Handler {
   const cors = opts.corsOrigin === undefined ? '*' : opts.corsOrigin;
   const maxBody = opts.maxBodyBytes ?? 256 * 1024;
   const maxBatch = opts.maxBatch ?? 200;
+  const basicAuth = opts.basicAuth;
 
   const send = (res: ServerResponse, status: number, type: string, body: string, extra: Record<string, string> = {}) => {
     res.writeHead(status, {
@@ -163,6 +193,18 @@ export function createApp(opts: AppOptions = {}): Handler {
     const url = new URL(req.url ?? '/', 'http://localhost');
     const route = `${req.method} ${url.pathname.replace(/\/+$/, '') || '/'}`;
     try {
+      if (basicAuth && route !== 'GET /health') {
+        const authHeader = req.headers.authorization;
+        if (!isAuthorised(authHeader, basicAuth)) {
+          res.writeHead(401, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'WWW-Authenticate': 'Basic realm="Preview", charset="UTF-8"',
+            ...(cors ? { 'Access-Control-Allow-Origin': cors, Vary: 'Origin' } : {}),
+          });
+          res.end(JSON.stringify({ error: 'authentication required' }));
+          return;
+        }
+      }
       if (req.method === 'OPTIONS') {
         res.writeHead(204, {
           ...(cors ? { 'Access-Control-Allow-Origin': cors } : {}),
