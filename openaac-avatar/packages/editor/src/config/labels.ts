@@ -59,6 +59,16 @@ export const HAIR_LABELS: Readonly<Record<string, string>> = {
   long_textured: 'Long, curly',
 };
 
+/** Names for the hand styles (core `HAND_STYLES`). */
+export const HAND_LABELS: Readonly<Record<string, string>> = {
+  open: 'Open',
+  grip: 'Grip',
+  relaxed: 'Relaxed',
+  rest: 'Resting',
+  point: 'Pointing',
+  wave: 'Wave',
+};
+
 export const EXPRESSION_LABELS: Readonly<Record<string, string>> = {
   content: 'Content',
   surprised: 'Surprised',

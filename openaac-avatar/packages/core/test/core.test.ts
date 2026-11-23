@@ -265,6 +265,42 @@ describe('variant art', () => {
   });
 });
 
+describe('hand styles', () => {
+  const ids = (pose: object, view = 'front') => poseFigure(getKit(view), normalizeRequest({ view, pose })).parts.map((p) => p.id);
+
+  it('swaps one side and keeps the template for the other', () => {
+    const parts = ids({ preset: 'standing', hands: { R: 'grip' } });
+    expect(parts).toContain('arm_R_palm@grip');
+    expect(parts).not.toContain('arm_R_palm@relaxed');
+    expect(parts).toContain('arm_L_palm@relaxed');
+  });
+
+  it('can open a hand the template grips, leaving the other gripping', () => {
+    const parts = ids({ preset: 'holding', hands: { L: 'open' } });
+    expect(parts).toContain('arm_R_palm@grip');
+    expect(parts).toContain('arm_L_palm@open');
+    expect(parts).not.toContain('arm_L_palm@grip');
+  });
+
+  it('drops the curled-fingers fallback on a side whose hand was chosen', () => {
+    const plain = { ...kit, parts: kit.parts.filter((p) => !p.id.includes('@') || p.id.endsWith('@open')) };
+    const fig = poseFigure(plain, normalizeRequest({ pose: { preset: 'holding', hands: { L: 'open' } } }));
+    expect(fig.pose.scales['wrist_R']).toBeCloseTo(0.55);
+    expect(fig.pose.scales['wrist_L']).toBe(1);
+  });
+
+  it('works in views whose plain hand has no @open art', () => {
+    expect(ids({ preset: 'standing', hands: { L: 'grip' } }, 'side')).toContain('arm_L_hand@grip');
+    expect(ids({ preset: 'standing', hands: { L: 'open' } }, 'side')).not.toContain('arm_L_hand@grip');
+  });
+
+  it('rejects unknown styles and styles the view lacks', () => {
+    expect(() => normalizeRequest({ pose: { hands: { R: 'claw' } } })).toThrow(RequestError);
+    expect(() => normalizeRequest({ pose: { hands: { X: 'grip' } } })).toThrow(RequestError);
+    expect(() => renderSvg({ view: 'three-quarter', pose: { hands: { R: 'point' } } })).toThrow(RequestError);
+  });
+});
+
 describe('animation support', () => {
   it('blends poses smoothly and switches art halfway', () => {
     const a = resolvePose({ preset: 'standing' }, 0.5);

@@ -6,7 +6,7 @@ import { applyToPoint, applyToSubpath, emptyBox, growBox, isEmptyBox, subpathBox
 import { getKit, morph } from './kit.js';
 import { jointMatrices, resolvePose, variantBase, type ResolvedPose } from './pose.js';
 import { RequestError, normalizeRequest, type NormalizedRequest } from './request.js';
-import { expressionOf, garmentOf, genericName, hairOf, isBackHair, jointForPart, splitVariant, unitForPart, type UnitId } from './rig.js';
+import { HAND_STYLES, expressionOf, garmentOf, genericName, hairOf, isBackHair, jointForPart, splitVariant, unitForPart, type UnitId } from './rig.js';
 import { joinGarmentPieces, mergeSleeves, outlineClothEdges, quarterLap, trimTorsoSkin } from './merge.js';
 import type { ArtKit, ColorRole, FillRole, GarmentSlot, StrokeRole, Subpath } from './types.js';
 
@@ -45,6 +45,12 @@ export function kitVariants(kit: ArtKit): Set<string> {
 
 /** The variant set drawn when a pose doesn't ask for another one. */
 export const DEFAULT_VARIANT = 'open';
+
+/** Hand styles the kit can draw: `open` always (the plain hand), plus every alternative hand set it has art for. */
+export function kitHandStyles(kit: ArtKit): string[] {
+  const have = kitVariants(kit);
+  return HAND_STYLES.filter((s) => s === DEFAULT_VARIANT || have.has(s));
+}
 
 /**
  * Pick which parts to draw. Variants on the same joint are alternative sets
@@ -221,6 +227,11 @@ function lapped(pose: ResolvedPose, view: string): boolean {
  */
 export function poseFigure(kit: ArtKit, req: NormalizedRequest, poseOverride?: ResolvedPose): PosedFigure {
   const available = availableVariants(kit, req.avatar.clothing);
+  const offered = kitHandStyles(kit);
+  const badHands = (['L', 'R'] as const).filter((s) => req.pose.hands[s] && !offered.includes(req.pose.hands[s]!));
+  if (badHands.length) {
+    throw new RequestError(badHands.map((s) => `pose.hands.${s} "${req.pose.hands[s]}" isn't available in the ${kit.view} view (use ${offered.join(', ')})`));
+  }
   const pose = poseOverride ?? resolvePose(req.pose, req.avatar.body, available, kit.view);
   // Side view sitting from standing art: on the very slimmest body the thigh is too thin to reach the
   // hips, so the figure is drawn at least SEATED_MIN_BODY (a difference too small to see elsewhere).

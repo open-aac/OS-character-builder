@@ -4,7 +4,7 @@ import type { EditorState } from '../state/store';
 
 export function templatePose(s: EditorState, withAdjust = true): ResolvedPose {
   const kit = getKit(s.view);
-  return resolvePose({ preset: s.preset, adjust: withAdjust ? s.adjust : {} }, s.body, availableVariants(kit, s.clothing), s.view);
+  return resolvePose({ preset: s.preset, adjust: withAdjust ? s.adjust : {}, hands: s.hands }, s.body, availableVariants(kit, s.clothing), s.view);
 }
 
 /** Joints the current view's art can move (the side view shows one arm and one leg). */

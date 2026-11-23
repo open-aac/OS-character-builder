@@ -88,6 +88,12 @@ export function splitVariant(partId: string): { base: string; variant: string | 
   return i < 0 ? { base: partId, variant: null } : { base: partId.slice(0, i), variant: partId.slice(i + 1) };
 }
 
+/**
+ * Hand styles: the variants that are alternative drawings of the hand. `open` is the default (the
+ * plain hand art counts as `open` in views without `@open` parts).
+ */
+export const HAND_STYLES: readonly string[] = ['open', 'grip', 'relaxed', 'rest', 'point', 'wave'];
+
 /** Which joint moves a part. `null` means the torso (it never rotates). */
 export function jointForPart(id: string): string | null {
   const partId = splitVariant(id).base;

@@ -4,13 +4,15 @@
  * The state maps one-to-one onto a core render request, so whatever the
  * editor shows can be saved, sent to the CLI or the HTTP API, and loaded back.
  */
-import { DEFAULT_COLORS, getKit, kitGarments, normalizeRequest, shownLook, type ColorRole, type Framing, type GarmentSlot, type RenderRequest } from '@openaac-avatar/core';
+import { DEFAULT_COLORS, getKit, kitGarments, normalizeRequest, shownLook, type ColorRole, type Framing, type GarmentSlot, type HandChoice, type RenderRequest } from '@openaac-avatar/core';
 
 export interface EditorState {
   /** Which art: front, three-quarter or side. */
   view: string;
   preset: string;
   adjust: Record<string, number>;
+  /** Hand style chosen per side (R is the figure's right); a side left out draws the pose's own hand. */
+  hands: HandChoice;
   body: number;
   colors: Record<ColorRole, string>;
   lineWeight: number;
@@ -41,6 +43,7 @@ export const initialState = (): EditorState => ({
   view: 'front',
   preset: 'standing',
   adjust: {},
+  hands: {},
   body: 0.5,
   colors: { ...DEFAULT_COLORS },
   lineWeight: 1,
@@ -56,9 +59,10 @@ const round = (n: number) => Math.round(n * 100) / 100;
 export function toRequest(s: EditorState): RenderRequest {
   const adjust = Object.fromEntries(Object.entries(s.adjust).filter(([, v]) => v !== 0));
   const clothing = Object.fromEntries(Object.entries(s.clothing).filter(([, v]) => v));
+  const hands = Object.fromEntries(Object.entries(s.hands).filter(([, v]) => v));
   return {
     view: s.view,
-    pose: { preset: s.preset, ...(Object.keys(adjust).length ? { adjust } : {}) },
+    pose: { preset: s.preset, ...(Object.keys(adjust).length ? { adjust } : {}), ...(Object.keys(hands).length ? { hands } : {}) },
     avatar: { body: round(s.body), colors: { ...s.colors }, lineWeight: round(s.lineWeight), clothing, ...(s.hair ? { hair: s.hair } : {}), ...(s.expression ? { expression: s.expression } : {}) },
     options: { framing: s.framing, size: s.size, ...(s.background ? { background: s.background } : {}) },
   };
@@ -75,6 +79,7 @@ export function fromRequest(r: RenderRequest): EditorState {
     view: n.view,
     preset: n.pose.preset,
     adjust: { ...n.pose.adjust },
+    hands: { ...n.pose.hands },
     body: n.avatar.body,
     colors: { ...n.avatar.colors },
     lineWeight: Math.min(LINE_WEIGHT[1], Math.max(LINE_WEIGHT[0], n.avatar.lineWeight)),

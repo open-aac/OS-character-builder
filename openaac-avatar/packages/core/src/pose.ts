@@ -5,8 +5,8 @@
 import { IDENTITY, about, lerp, multiply, rotate, scaleAlong, translate, type Matrix } from './geometry.js';
 import { DEFAULT_PRESET, PRESET_BY_ID, presetForView, presetsForView, type PoseValue } from './presets.js';
 import { RequestError } from './request.js';
-import { DEFAULT_UNIT_ORDER, JOINTS, JOINT_BY_ID, SCALE_LIMITS, type UnitId } from './rig.js';
-import type { Point, PoseInput } from './types.js';
+import { DEFAULT_UNIT_ORDER, HAND_STYLES, JOINTS, JOINT_BY_ID, SCALE_LIMITS, type UnitId } from './rig.js';
+import type { HandChoice, Point, PoseInput } from './types.js';
 
 export interface ResolvedPose {
   preset: string;
@@ -36,6 +36,36 @@ function valueAt(v: PoseValue | undefined, body: number, dflt: number): number {
 /** Variant name without a side suffix: `grip_R` → `grip`. */
 export const variantBase = (v: string) => v.replace(/_[LR]$/, '');
 
+const SIDES = ['L', 'R'] as const;
+
+/** The sides a variant tag applies to: `grip_R` → R, `grip` → both. */
+const tagSides = (tag: string): readonly ('L' | 'R')[] => {
+  const m = /_([LR])$/.exec(tag);
+  return m ? [m[1] as 'L' | 'R'] : SIDES;
+};
+
+const isHandTag = (tag: string) => HAND_STYLES.includes(variantBase(tag));
+
+/**
+ * The template's variants with the chosen hand styles swapped in: the template's own hand tags are
+ * dropped for the sides that were chosen, and the choices come first (the first matching tag wins).
+ */
+function withHands(variants: readonly string[], hands: HandChoice): string[] {
+  const chosen = SIDES.filter((s) => hands[s]);
+  if (!chosen.length) return [...variants];
+  const kept: string[] = [];
+  for (const tag of variants) {
+    if (!isHandTag(tag)) {
+      kept.push(tag);
+      continue;
+    }
+    const left = tagSides(tag).filter((s) => !hands[s]);
+    if (left.length === 2) kept.push(tag);
+    else if (left.length === 1) kept.push(`${variantBase(tag)}_${left[0]}`);
+  }
+  return [...chosen.map((s) => `${hands[s]}_${s}`), ...kept];
+}
+
 /**
  * Resolve a pose for a given body size (0..1).
  * Adjustments are clamped to the template's range, then to each joint's natural limits.
@@ -58,7 +88,9 @@ export function resolvePose(
   }
   const range = template.adjustRange ?? DEFAULT_ADJUST_RANGE;
 
-  const variants = preset.variants ?? [];
+  const hands = input?.hands ?? {};
+  const templateVariants = preset.variants ?? [];
+  const variants = withHands(templateVariants, hands);
   const angleValues = { ...preset.angles };
   // The side view's far arm stays hidden behind the near one unless the template moves it.
   if (view === 'side' && !['shoulder', 'elbow', 'wrist'].some((j) => `${j}_R` in angleValues)) {
@@ -66,14 +98,18 @@ export function resolvePose(
   }
   const scaleValues = { ...preset.scales };
   const locked = new Set<string>();
-  for (const v of variants) {
+  for (const v of templateVariants) {
     const rule = preset.variantRules?.[v];
     if (!rule) continue;
     if (availableVariants.has(variantBase(v))) {
       for (const j of rule.lock ?? []) locked.add(j);
     } else {
-      Object.assign(angleValues, rule.fallback?.angles);
-      Object.assign(scaleValues, rule.fallback?.scales);
+      // A hand fallback (e.g. curled fingers) no longer applies to a side whose hand was chosen.
+      const skip = isHandTag(v) ? tagSides(v).filter((s) => hands[s]) : [];
+      const keep = <T>(rec: Partial<Record<string, T>> | undefined) =>
+        Object.fromEntries(Object.entries(rec ?? {}).filter(([joint]) => !skip.some((s) => joint.endsWith(`_${s}`))));
+      Object.assign(angleValues, keep(rule.fallback?.angles));
+      Object.assign(scaleValues, keep(rule.fallback?.scales));
     }
   }
 

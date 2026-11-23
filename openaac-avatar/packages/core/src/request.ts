@@ -4,8 +4,8 @@
  * the SVG passes through here, so colours and ids are safe to write out.
  */
 import { PRESET_BY_ID, DEFAULT_PRESET } from './presets.js';
-import { JOINT_BY_ID } from './rig.js';
-import type { AvatarInput, ColorRole, Framing, GarmentSlot, PoseInput, RenderOptions, RenderRequest } from './types.js';
+import { HAND_STYLES, JOINT_BY_ID } from './rig.js';
+import type { AvatarInput, ColorRole, Framing, GarmentSlot, HandChoice, PoseInput, RenderOptions, RenderRequest } from './types.js';
 
 export const DEFAULT_COLORS: Readonly<Record<ColorRole, string>> = {
   skin: '#d59965',
@@ -26,7 +26,7 @@ export const FRAMINGS: readonly Framing[] = ['full', 'upper', 'head', 'canvas'];
 
 export interface NormalizedRequest {
   view: string;
-  pose: Required<PoseInput> & { adjust: Record<string, number> };
+  pose: Required<PoseInput> & { adjust: Record<string, number>; hands: HandChoice };
   avatar: {
     body: number;
     colors: Record<ColorRole, string>;
@@ -86,6 +86,19 @@ export function normalizeRequest(input: unknown): NormalizedRequest {
       for (const [joint, v] of Object.entries(pose.adjust)) {
         if (!JOINT_BY_ID.has(joint)) problems.push(`pose.adjust: unknown joint "${joint}"`);
         else adjust[joint] = num(v, `pose.adjust.${joint}`, -180, 180, 0);
+      }
+    }
+  }
+
+  const hands: HandChoice = {};
+  if (pose.hands !== undefined) {
+    if (!isObj(pose.hands)) problems.push('pose.hands must be an object like { "R": "grip", "L": "open" }');
+    else {
+      for (const [side, v] of Object.entries(pose.hands)) {
+        if (side !== 'L' && side !== 'R') problems.push(`pose.hands: unknown side "${side}" (use L, R)`);
+        else if (v === undefined || v === null) continue;
+        else if (typeof v !== 'string' || !HAND_STYLES.includes(v)) problems.push(`pose.hands.${side} must be one of: ${HAND_STYLES.join(', ')}`);
+        else hands[side] = v;
       }
     }
   }
@@ -157,7 +170,7 @@ export function normalizeRequest(input: unknown): NormalizedRequest {
 
   const result: NormalizedRequest = {
     view,
-    pose: { preset, adjust },
+    pose: { preset, adjust, hands },
     avatar: {
       body: num(avatar.body, 'avatar.body', 0, 1, 0.5),
       colors,

@@ -69,7 +69,16 @@ export interface PoseInput {
   preset?: string;
   /** Offsets added to the template's angles, clamped to the template's adjustment range. */
   adjust?: JointAngles;
+  /**
+   * Hand style per side, replacing what the template draws: `open`, `grip`, `relaxed`, `rest`,
+   * `point` or `wave` (which ones exist depends on the view). `R` is the figure's right (the
+   * viewer's left). Omitted: the template's own hands.
+   */
+  hands?: HandChoice;
 }
+
+/** A hand style for each side of the figure. */
+export type HandChoice = Partial<Record<'L' | 'R', string>>;
 
 export interface AvatarInput {
   /** Body size from 0 (slim extreme) to 1 (broad extreme). */

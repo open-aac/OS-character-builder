@@ -56,6 +56,7 @@ describe('toRequest / fromRequest', () => {
       view: 'side',
       preset: 'waving',
       adjust: { elbow_R: 12 },
+      hands: { R: 'grip' },
       body: 0.8,
       colors: { ...DEFAULT_COLORS, skin: '#112233' },
       lineWeight: 0.9,

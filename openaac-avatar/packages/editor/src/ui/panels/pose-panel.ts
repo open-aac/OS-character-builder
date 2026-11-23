@@ -1,5 +1,5 @@
-import { JOINT_BY_ID, VIEWS, presetsForView } from '@openaac-avatar/core';
-import { JOINT_GROUPS, VIEW_LABELS } from '../../config/labels';
+import { JOINT_BY_ID, VIEWS, getKit, kitHandStyles, presetsForView } from '@openaac-avatar/core';
+import { HAND_LABELS, JOINT_GROUPS, VIEW_LABELS } from '../../config/labels';
 import { h } from '../../lib/dom';
 import { limbPresets, matchingPreset } from '../../render/limb-presets';
 import { jointsInView } from '../../render/pose';
@@ -10,7 +10,7 @@ import { ICONS } from '../icons';
 import { adjustFields } from './adjust-panel';
 
 export function poseIconSvg(store: Store, preset: string): string {
-  return renderSymbol({ ...store.state, preset, adjust: {}, framing: 'full', background: null }, { size: 44, idPrefix: `pose-${preset}` });
+  return renderSymbol({ ...store.state, preset, adjust: {}, hands: {}, framing: 'full', background: null }, { size: 44, idPrefix: `pose-${preset}` });
 }
 
 /** A tiny version of the figure in that pose, in the current colours and body size (kept up to date by the preview). */
@@ -62,7 +62,7 @@ function galleryView(store: Store): Node[] {
       (next) => {
         // Keep the pose if the new view has it, otherwise stand.
         const keep = presetsForView(next).some((p) => p.id === store.state.preset);
-        store.update({ view: next, preset: keep ? store.state.preset : 'standing', adjust: {} }, { rebuild: true });
+        store.update({ view: next, preset: keep ? store.state.preset : 'standing', adjust: {}, hands: {} }, { rebuild: true });
       },
     ),
     h('p', { class: 'field-label' }, 'Template'),
@@ -70,7 +70,7 @@ function galleryView(store: Store): Node[] {
       'Template pose',
       presets.map((p) => ({ value: p.id, label: p.label, title: p.description, icon: poseIcon(store, p.id) })),
       store.state.preset,
-      (preset) => store.update({ preset, adjust: {} }, { rebuild: true }),
+      (preset) => store.update({ preset, adjust: {}, hands: {} }, { rebuild: true }),
       'pose-grid',
       () => editPoseLink(store),
     ),
@@ -78,16 +78,56 @@ function galleryView(store: Store): Node[] {
   ];
 }
 
+/** The "limb" that stands for both hands: chosen from the Limb chips like an arm or leg. */
+const HANDS = 'Hands';
+
+/** Hand styles the current view's art offers (more than just the open hand), or none. */
+function handStyles(view: string): string[] {
+  const styles = kitHandStyles(getKit(view));
+  return styles.length < 2 ? [] : styles;
+}
+
+/** Hand styles for the figure's right and left hands. */
+function handsView(store: Store, styles: string[]): Node[] {
+  const side = (name: 'Right' | 'Left', key: 'R' | 'L') => [
+    h('p', { class: 'field-label' }, `${name} hand`),
+    choiceChips(
+      `${name} hand style`,
+      [{ value: '', label: 'Pose default' }, ...styles.map((style) => ({ value: style, label: HAND_LABELS[style] ?? style }))],
+      store.state.hands[key] ?? '',
+      (style) => {
+        const next = { ...store.state.hands };
+        if (style) next[key] = style;
+        else delete next[key];
+        store.update({ hands: next }, { rebuild: true });
+      },
+    ),
+  ];
+
+  return [...side('Right', 'R'), ...side('Left', 'L')];
+}
+
 /** The limb view: pick a limb, then a quick preset position for it; exact control stays in Fine adjustments below. */
 function limbView(store: Store, limb: string): Node[] {
   const groups = availableGroups(store.state.view);
+  const styles = handStyles(store.state.view);
+  const onHands = limb === HANDS && styles.length > 0;
   const current = groups.find((g) => g.title === limb) ?? groups[0];
+  const titles = groups.map((g) => g.title);
+  if (styles.length) titles.splice(titles.indexOf('Head') + 1, 0, HANDS);
+  const limbChips = titles.map((title) => ({ value: title, label: title }));
 
   const backIcon = h('span', { 'aria-hidden': 'true' });
   backIcon.innerHTML = ICONS.back;
   const back = h('button', { type: 'button', class: 'btn btn-ghost pose-back' }, backIcon, 'Back to poses');
   back.addEventListener('click', () => store.setPoseView(null));
 
+  const limbPicker = [
+    h('p', { class: 'field-label' }, 'Limb'),
+    choiceChips('Limb', limbChips, onHands ? HANDS : (current?.title ?? ''), (title) => store.setPoseView({ limb: title })),
+  ];
+
+  if (onHands) return [back, ...limbPicker, ...handsView(store, styles)];
   if (!current) return [back, hint('No adjustable limbs in this view.')];
 
   const presets = limbPresets(store.state, current);
@@ -108,13 +148,7 @@ function limbView(store: Store, limb: string): Node[] {
 
   return [
     back,
-    h('p', { class: 'field-label' }, 'Limb'),
-    choiceChips(
-      'Limb',
-      groups.map((g) => ({ value: g.title, label: g.title })),
-      current.title,
-      (title) => store.setPoseView({ limb: title }),
-    ),
+    ...limbPicker,
     h('p', { class: 'field-label' }, 'Preset position'),
     presetBody,
     subPanel('Fine adjustments', 'adjust', ...adjustFields(store)),
@@ -125,4 +159,3 @@ export function posePanel(store: Store): HTMLElement {
   const body = store.poseView ? limbView(store, store.poseView.limb) : galleryView(store);
   return panel('Pose', 'pose', ...body);
 }
-

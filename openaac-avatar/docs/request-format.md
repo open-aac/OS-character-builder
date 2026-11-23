@@ -39,6 +39,7 @@ A request describes one symbol. The CLI (`--request`, `batch`), the HTTP API (`P
 |---|---|---|
 | `preset` | `standing` | `standing`, `waving`, `reaching`, `holding`, `sitting`, `sitting-utensil`, `pointing`, `jumping`, `cheering` |
 | `adjust` | `{}` | Degrees added to the template per joint. Clamped to ±30° and to the joint's natural range. |
+| `hands` | template's own | Hand style per side, e.g. `{ "R": "grip", "L": "open" }`. Styles: `open`, `grip`, `relaxed`, `rest`, `point`, `wave`. Front has `open`, `grip`, `relaxed`, `rest`, `point`; ¾ has `open`, `grip`; side has `open`, `grip`, `wave`. A style the view doesn't have is an error that lists what it does have. |
 
 Joints: `neck`, `shoulder_R`, `elbow_R`, `wrist_R`, `hip_R`, `knee_R`, `ankle_R`, and the same for `_L`. `R` is the figure's right (the viewer's left). Positive values move a limb up or away from the body on either side; `neck` positive tilts the head towards the viewer's right.
 
